@@ -1,0 +1,1141 @@
+{
+  "started_at": "2026-10-07 21:19:34",
+  "finished_at": "2026-10-07 21:19:36",
+  "backend": "http://127.0.0.1:8000",
+  "frontend": "http://127.0.0.1:5173",
+  "total": 113,
+  "passed": 111,
+  "failed": 2,
+  "results": [
+    {
+      "id": "TC-A01",
+      "module": "商品浏览",
+      "title": "无商品在售时返回 NONE 空状态",
+      "trace": "FR-044",
+      "expected": "state=NONE, product=null, message=暂无商品在售",
+      "actual": "{\"state\": \"NONE\", \"product\": null, \"message\": \"暂无商品在售\"}",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-A02",
+      "module": "商品浏览",
+      "title": "在售时返回 ON_SALE 与完整商品信息",
+      "trace": "FR-045",
+      "expected": "state=ON_SALE, price=88.5, status_label=在售",
+      "actual": "state=ON_SALE price=88.5 label=在售",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-A03",
+      "module": "商品浏览",
+      "title": "商品详情接口按 id 返回商品",
+      "trace": "FR-043",
+      "expected": "HTTP 200 且 product.id 一致",
+      "actual": "HTTP 200 id=3a3359b2a3914250ab3943a89f1c5d93",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-A04",
+      "module": "商品浏览",
+      "title": "冻结时返回 FROZEN 与交易中提示",
+      "trace": "FR-046",
+      "expected": "state=FROZEN, message=商品交易中",
+      "actual": "state=FROZEN message=商品交易中",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-A05",
+      "module": "商品浏览",
+      "title": "已下架商品详情返回 404",
+      "trace": "FR-043",
+      "expected": "HTTP 404 NOT_FOUND",
+      "actual": "HTTP 404 NOT_FOUND",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-A06",
+      "module": "商品浏览",
+      "title": "/current 路由优先于 /{product_id} 通配路由",
+      "trace": "接口设计§2",
+      "expected": "返回三态结构（含 state 字段），而非商品详情结构",
+      "actual": "keys=['message', 'product', 'state']",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B01",
+      "module": "登录鉴权",
+      "title": "正确账号密码登录成功并下发令牌",
+      "trace": "FR-032",
+      "expected": "HTTP 200 + token + expires_at + seller.username=seller",
+      "actual": "HTTP 200 token=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B02",
+      "module": "登录鉴权",
+      "title": "密码错误 时返回 401",
+      "trace": "FR-032",
+      "expected": "HTTP 401 UNAUTHORIZED",
+      "actual": "HTTP 401 UNAUTHORIZED",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B03",
+      "module": "登录鉴权",
+      "title": "用户名不存在 时返回 401",
+      "trace": "FR-032",
+      "expected": "HTTP 401 UNAUTHORIZED",
+      "actual": "HTTP 401 UNAUTHORIZED",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B04",
+      "module": "登录鉴权",
+      "title": "无令牌访问受保护接口返回 401",
+      "trace": "NFR-006",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B05",
+      "module": "登录鉴权",
+      "title": "伪造令牌被拒绝",
+      "trace": "NFR-006",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B06",
+      "module": "登录鉴权",
+      "title": "不提供注册接口",
+      "trace": "FR-033",
+      "expected": "HTTP 404",
+      "actual": "HTTP 404",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B07",
+      "module": "登录鉴权",
+      "title": "修改密码时旧密码校验失败返回 401",
+      "trace": "FR-035",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B08",
+      "module": "登录鉴权",
+      "title": "新密码少于 6 位被拒绝",
+      "trace": "FR-035",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B09",
+      "module": "登录鉴权",
+      "title": "改密成功后旧密码失效、新密码生效",
+      "trace": "FR-035",
+      "expected": "改密 200；旧密码登录 401；新密码登录 200",
+      "actual": "改密=200 旧密码=401 新密码=200",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-B10",
+      "module": "登录鉴权",
+      "title": "令牌有效但参数非法时正常返回 422",
+      "trace": "接口设计§1",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C01",
+      "module": "商品管理",
+      "title": "发布商品成功并置为在售",
+      "trace": "FR-001",
+      "expected": "HTTP 200, status=ON_SALE, price=99.9",
+      "actual": "HTTP 200 status=ON_SALE",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C02",
+      "module": "商品管理",
+      "title": "已有在售商品时重复发布被拒（唯一在售）",
+      "trace": "FR-008",
+      "expected": "HTTP 409 CONFLICT",
+      "actual": "HTTP 409 当前已有在售或交易中的商品，需先下架后才能发布新商品",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C03",
+      "module": "商品管理",
+      "title": "名称为纯空格 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C04",
+      "module": "商品管理",
+      "title": "价格为 0 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C05",
+      "module": "商品管理",
+      "title": "价格为负数 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C06",
+      "module": "商品管理",
+      "title": "价格超上限 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C07",
+      "module": "商品管理",
+      "title": "缺少名称字段 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C08",
+      "module": "商品管理",
+      "title": "名称超 120 字 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C09",
+      "module": "商品管理",
+      "title": "描述超 2000 字 被校验拒绝",
+      "trace": "FR-001",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C10",
+      "module": "商品管理",
+      "title": "价格 0.001 元（不足 1 分）应被优雅拒绝而非 500",
+      "trace": "FR-001 / NFR-009",
+      "expected": "HTTP 422（参数校验失败）",
+      "actual": "HTTP 500，响应体=Internal Server Error",
+      "status": "FAIL",
+      "note": "缺陷 BUG-001：Pydantic 仅校验 price>0，换算为分后为 0，触发 SQLite CHECK(price_cents>0) 未捕获异常 → 500"
+    },
+    {
+      "id": "TC-C11",
+      "module": "商品管理",
+      "title": "手动冻结商品成功",
+      "trace": "FR-009",
+      "expected": "HTTP 200, status=FROZEN",
+      "actual": "HTTP 200 status=FROZEN",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C12",
+      "module": "商品管理",
+      "title": "重复冻结被拒",
+      "trace": "FR-009",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C13",
+      "module": "商品管理",
+      "title": "冻结期间不接收新意向",
+      "trace": "FR-012/FR-016",
+      "expected": "HTTP 409 且提示含「交易中」",
+      "actual": "HTTP 409 商品交易中，暂停接收新意向",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C14",
+      "module": "商品管理",
+      "title": "手动解冻恢复在售",
+      "trace": "FR-010",
+      "expected": "HTTP 200, status=ON_SALE",
+      "actual": "HTTP 200 status=ON_SALE",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C15",
+      "module": "商品管理",
+      "title": "非冻结状态解冻被拒",
+      "trace": "FR-010",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C16",
+      "module": "商品管理",
+      "title": "存在进行中交易时禁止手动解冻",
+      "trace": "FR-010/FR-011",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C17",
+      "module": "商品管理",
+      "title": "下架商品成功",
+      "trace": "FR-003",
+      "expected": "HTTP 200, status=OFF_SHELF",
+      "actual": "HTTP 200 status=OFF_SHELF",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C18",
+      "module": "商品管理",
+      "title": "重复下架被拒",
+      "trace": "FR-003",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C19",
+      "module": "商品管理",
+      "title": "已下架商品不接收新意向",
+      "trace": "FR-003",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409 商品已下架，无法提交购买意向",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C20",
+      "module": "商品管理",
+      "title": "冻结不存在商品返回 404",
+      "trace": "接口设计§1",
+      "expected": "HTTP 404 NOT_FOUND",
+      "actual": "HTTP 404",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-C21",
+      "module": "商品管理",
+      "title": "后台不提供商品编辑接口（发布后不可改）",
+      "trace": "FR-002",
+      "expected": "PATCH /api/seller/products/{id} 不存在（HTTP 404/405）",
+      "actual": "PATCH -> HTTP 404",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D01",
+      "module": "排队口令码",
+      "title": "提交意向返回口令码与排队序号 1",
+      "trace": "FR-013/FR-014",
+      "expected": "HTTP 200, queue_position=1, status=QUEUED, command_code 非空",
+      "actual": "HTTP 200 pos=1 status=QUEUED code=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D02",
+      "module": "排队口令码",
+      "title": "口令码为 10 位且不含易混淆字符 0/O/1/I/l",
+      "trace": "NFR-004",
+      "expected": "长度 10，字符集为 ABCDEFGHJKMNPQRSTUVWXYZ23456789",
+      "actual": "code=VR4NJMJXHZ",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D03",
+      "module": "排队口令码",
+      "title": "连续提交按先到先得分配 1..5",
+      "trace": "FR-015/NFR-014",
+      "expected": "序号依次为 [1,2,3,4,5]",
+      "actual": "[1, 2, 3, 4, 5]",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D04",
+      "module": "排队口令码",
+      "title": "凭口令码查询意向状态与位次",
+      "trace": "FR-022",
+      "expected": "HTTP 200, position=1, can_edit=true, can_cancel=true",
+      "actual": "HTTP 200 pos=1 edit=True cancel=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D05",
+      "module": "排队口令码",
+      "title": "无效口令码返回 410",
+      "trace": "FR-022/NFR-005",
+      "expected": "HTTP 410 COMMAND_CODE_INVALID",
+      "actual": "HTTP 410 COMMAND_CODE_INVALID",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D06",
+      "module": "排队口令码",
+      "title": "修改联系电话后位次不变、未提交字段保持原值",
+      "trace": "FR-023",
+      "expected": "电话=13900002222, 姓名=张三, position 仍为 1",
+      "actual": "HTTP 200 phone=13900002222 name=张三 pos=1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D07",
+      "module": "排队口令码",
+      "title": "修改请求未携带任何可改字段被拒",
+      "trace": "FR-023",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D08",
+      "module": "排队口令码",
+      "title": "撤销排队后口令码立即失效",
+      "trace": "FR-024/FR-026",
+      "expected": "撤销 200；再次查询 410",
+      "actual": "撤销=200 再查=410",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D09",
+      "module": "排队口令码",
+      "title": "撤销后队列序号连续补位（无空洞）",
+      "trace": "FR-024",
+      "expected": "等待中序号应为连续整数 1..n",
+      "actual": "等待中序号=[1, 2, 3, 4, 5]",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D10",
+      "module": "排队口令码",
+      "title": "姓名为空 被校验拒绝",
+      "trace": "FR-013",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D11",
+      "module": "排队口令码",
+      "title": "电话格式非法（字母） 被校验拒绝",
+      "trace": "FR-013",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D12",
+      "module": "排队口令码",
+      "title": "电话不足 5 位 被校验拒绝",
+      "trace": "FR-013",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D13",
+      "module": "排队口令码",
+      "title": "电话超 20 位 被校验拒绝",
+      "trace": "FR-013",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D14",
+      "module": "排队口令码",
+      "title": "姓名超 64 字 被校验拒绝",
+      "trace": "FR-013",
+      "expected": "HTTP 422 VALIDATION_ERROR",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-D15",
+      "module": "排队口令码",
+      "title": "向不存在的商品提交意向返回 404",
+      "trace": "接口设计§1",
+      "expected": "HTTP 404 NOT_FOUND",
+      "actual": "HTTP 404",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E01",
+      "module": "交易流程",
+      "title": "队列为空时进入交易被拒",
+      "trace": "FR-021",
+      "expected": "HTTP 409 且提示「队列为空」",
+      "actual": "HTTP 409 当前队列为空，没有可交易的意向购买人",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E02",
+      "module": "交易流程",
+      "title": "进入交易：队首转 IN_TRANSACTION 且商品自动冻结",
+      "trace": "FR-011",
+      "expected": "HTTP 200；order.status=IN_TRANSACTION；product.status=FROZEN；取队首买家A",
+      "actual": "HTTP 200 order=IN_TRANSACTION product=FROZEN",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E03",
+      "module": "交易流程",
+      "title": "已有进行中交易时不可重复进入",
+      "trace": "FR-011",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E04",
+      "module": "交易流程",
+      "title": "进入交易后买家不可撤销",
+      "trace": "FR-025",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E05",
+      "module": "交易流程",
+      "title": "进入交易后买家不可修改信息",
+      "trace": "FR-023/FR-025",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E06",
+      "module": "交易流程",
+      "title": "进入交易后口令码仍可查询且标记不可改不可撤",
+      "trace": "FR-022",
+      "expected": "HTTP 200；position=1；can_edit=false；can_cancel=false",
+      "actual": "HTTP 200 pos=1 edit=False cancel=False",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E07",
+      "module": "交易流程",
+      "title": "标记交易失败后由队列下一位自动递补并再冻结",
+      "trace": "FR-021/FR-029",
+      "expected": "A=FAILED；B=IN_TRANSACTION；商品保持 FROZEN",
+      "actual": "A=FAILED B=IN_TRANSACTION product=FROZEN",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E08",
+      "module": "交易流程",
+      "title": "交易失败者口令码立即失效",
+      "trace": "FR-026",
+      "expected": "HTTP 410",
+      "actual": "HTTP 410",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E09",
+      "module": "交易流程",
+      "title": "非交易失败状态不可作废",
+      "trace": "FR-030",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E10",
+      "module": "交易流程",
+      "title": "交易失败者可作废",
+      "trace": "FR-030",
+      "expected": "HTTP 200, status=VOIDED",
+      "actual": "HTTP 200 status=VOIDED",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E11",
+      "module": "交易流程",
+      "title": "已作废订单不可再标记交易结果",
+      "trace": "FR-027",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E12",
+      "module": "交易流程",
+      "title": "交易成功：商品下架并进入历史",
+      "trace": "FR-028",
+      "expected": "HTTP 200；order=SUCCESS；product=OFF_SHELF",
+      "actual": "HTTP 200 order=SUCCESS product=OFF_SHELF",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E13",
+      "module": "交易流程",
+      "title": "交易成功后关联口令码全部失效",
+      "trace": "FR-026",
+      "expected": "HTTP 410",
+      "actual": "HTTP 410",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E14",
+      "module": "交易流程",
+      "title": "交易失败且队列为空时商品恢复在售",
+      "trace": "FR-029",
+      "expected": "product.status=ON_SALE",
+      "actual": "product=ON_SALE",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E15",
+      "module": "交易流程",
+      "title": "失败者重新排队：放回队尾并生成新口令码",
+      "trace": "FR-030/TBD-03",
+      "expected": "HTTP 200, status=REQUEUED, queue_position=1, 返回新 command_code",
+      "actual": "HTTP 200 status=REQUEUED pos=1 newcode=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E16",
+      "module": "交易流程",
+      "title": "重新排队后新口令码可正常查询",
+      "trace": "FR-030",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E17",
+      "module": "交易流程",
+      "title": "同一失败者最多重新排队 1 次",
+      "trace": "FR-030",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-E18",
+      "module": "交易流程",
+      "title": "已重新排队的订单不可再作废（仅 FAILED 可作废）",
+      "trace": "FR-030",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F01",
+      "module": "历史记录",
+      "title": "历史列表仅包含已下架商品",
+      "trace": "FR-004",
+      "expected": "列表中包含「历史测试商品」，且全部为 OFF_SHELF",
+      "actual": "total=7 名称=['历史测试商品', '失败重排商品', '交易测试商品', '排队测试商品', '商品A']",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F02",
+      "module": "历史记录",
+      "title": "历史列表交易概览统计失败轮次与最终结果",
+      "trace": "FR-004",
+      "expected": "failed_rounds=1, final_result=SUCCESS, buyer_count=2",
+      "actual": "{\"failed_rounds\": 1, \"buyer_count\": 2, \"final_result\": \"SUCCESS\", \"final_result_label\": \"交易成功\", \"last_transaction_at\": \"2026-10-07 21:19:36\"}",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F03",
+      "module": "历史记录",
+      "title": "历史详情完整保留多轮交易记录（不可只留最终结果）",
+      "trace": "FR-031/NFR-015",
+      "expected": "transactions 为 [FAILED, SUCCESS] 两条",
+      "actual": "transactions=['FAILED', 'SUCCESS']",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F04",
+      "module": "历史记录",
+      "title": "历史商品买家联系电话脱敏展示",
+      "trace": "FR-019/NFR-003",
+      "expected": "电话形如 138****0001（保留前3后4）",
+      "actual": "['138****0001', '138****0002']",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F05",
+      "module": "历史记录",
+      "title": "未下架商品查看历史详情返回 409",
+      "trace": "FR-005",
+      "expected": "HTTP 409",
+      "actual": "HTTP 409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F06",
+      "module": "意向列表",
+      "title": "商品在售、订单未终结时卖家可见完整电话",
+      "trace": "FR-019",
+      "expected": "buyer_phone=13800007777（不脱敏）",
+      "actual": "13800007777",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F07",
+      "module": "意向列表",
+      "title": "按状态筛选意向列表",
+      "trace": "FR-017",
+      "expected": "全部返回项 status 均为 QUEUED",
+      "actual": "total=1 状态集={'QUEUED'}",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F08",
+      "module": "分页",
+      "title": "分页参数 page=0 越界被拒",
+      "trace": "接口设计§1",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F09",
+      "module": "分页",
+      "title": "分页参数 page_size=0 越界被拒",
+      "trace": "接口设计§1",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F10",
+      "module": "分页",
+      "title": "分页参数 page_size=101 越界被拒",
+      "trace": "接口设计§1",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F11",
+      "module": "分页",
+      "title": "分页参数 page=-1 越界被拒",
+      "trace": "接口设计§1",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F12",
+      "module": "操作日志",
+      "title": "关键操作被记入操作日志",
+      "trace": "FR-042",
+      "expected": "日志含 LOGIN / PUBLISH_PRODUCT / OFF_SHELF_PRODUCT 等",
+      "actual": "['CHANGE_PASSWORD', 'FREEZE_PRODUCT', 'LOGIN', 'OFF_SHELF_PRODUCT', 'PUBLISH_PRODUCT', 'REQUEUE_ORDER', 'START_TRANSACTION', 'TRANSACTION_FAILED']",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F13",
+      "module": "操作日志",
+      "title": "每条日志含可读中文描述与时间",
+      "trace": "FR-042/NFR-010",
+      "expected": "所有日志项 detail 非空且 created_at 存在",
+      "actual": "共 35 条，detail 齐全=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F14",
+      "module": "历史记录",
+      "title": "历史列表支持按名称关键词模糊搜索",
+      "trace": "FR-004",
+      "expected": "搜索「历史」命中「历史测试商品」",
+      "actual": "total=1 名称=['历史测试商品']",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-F15",
+      "module": "历史记录",
+      "title": "关键词中的 LIKE 通配符应被转义（_ 不应匹配任意字符）",
+      "trace": "FR-004",
+      "expected": "搜索「_」应命中 0 条（无商品名含下划线）",
+      "actual": "搜索「_」命中 7 条；不带关键词共 7 条",
+      "status": "FAIL",
+      "note": "缺陷 BUG-002：keyword 未转义 LIKE 通配符 % 和 _，导致搜索「_」或「%」返回全部历史商品"
+    },
+    {
+      "id": "TC-G01",
+      "module": "CSV 导出",
+      "title": "导出接口返回 CSV 且带 UTF-8 BOM",
+      "trace": "FR-018",
+      "expected": "Content-Type 含 text/csv；内容以 BOM 开头",
+      "actual": "Content-Type=text/csv; charset=utf-8 BOM=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-G02",
+      "module": "CSV 导出",
+      "title": "CSV 表头与数据行正确",
+      "trace": "FR-018",
+      "expected": "表头=姓名,联系电话,提交时间,排队序号,状态；共 1+2 行",
+      "actual": "表头=姓名,联系电话,提交时间,排队序号,状态 行数=3",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-G03",
+      "module": "CSV 导出",
+      "title": "未登录不可导出",
+      "trace": "NFR-006",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H01",
+      "module": "图片上传",
+      "title": "上传合法 PNG 成功并返回可访问 URL",
+      "trace": "FR-001",
+      "expected": "HTTP 200 且 url 形如 /uploads/xxx.png",
+      "actual": "HTTP 200 url=/uploads/a7b70ed4799c4a4e8ff48e293652ba32.png",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H02",
+      "module": "图片上传",
+      "title": "已上传图片可经静态路由访问",
+      "trace": "FR-001",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200 Content-Type=image/png",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H03",
+      "module": "图片上传",
+      "title": "非图片扩展名被拒绝",
+      "trace": "NFR-012",
+      "expected": "HTTP 400 INVALID_IMAGE_FORMAT",
+      "actual": "HTTP 400 INVALID_IMAGE_FORMAT",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H04",
+      "module": "图片上传",
+      "title": "空文件被拒绝",
+      "trace": "NFR-012",
+      "expected": "HTTP 400 EMPTY_FILE",
+      "actual": "HTTP 400 EMPTY_FILE",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H05",
+      "module": "图片上传",
+      "title": "超过 5MB 的图片被拒绝",
+      "trace": "NFR-012",
+      "expected": "HTTP 400 IMAGE_TOO_LARGE",
+      "actual": "HTTP 400 IMAGE_TOO_LARGE",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H06",
+      "module": "图片上传",
+      "title": "大写扩展名按小写规则放行",
+      "trace": "NFR-012",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H07",
+      "module": "图片上传",
+      "title": "无扩展名文件被拒绝",
+      "trace": "NFR-012",
+      "expected": "HTTP 400",
+      "actual": "HTTP 400",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-H08",
+      "module": "图片上传",
+      "title": "仅校验扩展名，不校验真实文件内容",
+      "trace": "NFR-012",
+      "expected": "观察项：扩展名为 .png 即放行，即使内容不是图片",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "note": "观察项：接口只做扩展名白名单，未做文件头(Magic Number)校验；回应 NFR-012「限制图片格式」的强度不足（低风险，静态资源按扩展名下发 Content-Type）"
+    },
+    {
+      "id": "TC-I01",
+      "module": "并发",
+      "title": "20 个并发提交意向全部成功且无丢失",
+      "trace": "NFR-013",
+      "expected": "成功 20 笔",
+      "actual": "成功 20 笔",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-I02",
+      "module": "并发",
+      "title": "并发下排队序号唯一且连续（无重复、无空洞）",
+      "trace": "NFR-013/NFR-014",
+      "expected": "序号恰为 1..20 各一次",
+      "actual": "得到 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-I03",
+      "module": "并发",
+      "title": "并发后不存在两个同时进行中的交易（防超卖）",
+      "trace": "NFR-013",
+      "expected": "IN_TRANSACTION 数量为 0（尚未进入交易）",
+      "actual": "IN_TRANSACTION 数量=0",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-I04",
+      "module": "并发",
+      "title": "连续进入交易仅第一次成功（先到先得不可干预）",
+      "trace": "FR-020/NFR-014",
+      "expected": "第一次 200，第二次 409",
+      "actual": "第一次=200 第二次=409",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K01",
+      "module": "安全",
+      "title": "历史搜索关键词中的 SQL 注入载荷不生效",
+      "trace": "NFR-005",
+      "expected": "HTTP 200 且返回 0 条（按字面匹配），无数据库错误",
+      "actual": "HTTP 200 total=0",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K02",
+      "module": "安全",
+      "title": "静态资源路径不可穿越到后端源码",
+      "trace": "NFR-005",
+      "expected": "HTTP 404/403，且响应不含 SECRET_KEY 源码内容",
+      "actual": "HTTP 404 含SECRET_KEY=False",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K03",
+      "module": "安全",
+      "title": "口令码只能访问自身对应意向，不可越权",
+      "trace": "NFR-004",
+      "expected": "A 的查询结果中 order_id 等于 A，B 的等于 B，两者不同",
+      "actual": "A=50b58378 B=ee5a3c9c",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K04",
+      "module": "安全",
+      "title": "含 HTML 标签的商品名按原文存储（转义责任在前端）",
+      "trace": "NFR-005",
+      "expected": "接口原样返回，前端 Vue 插值自动转义（`{{ }}`）",
+      "actual": "存储值=<script>alert(1)</script>",
+      "status": "PASS",
+      "note": "观察项：接口未做 HTML 转义，需确保前端始终用插值而非 v-html 渲染；已核对前端视图均使用 {{ }} 插值（低风险）"
+    },
+    {
+      "id": "TC-K05",
+      "module": "健壮性",
+      "title": "超长口令码返回 410 而非 500",
+      "trace": "NFR-009",
+      "expected": "HTTP 410",
+      "actual": "HTTP 410",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K06",
+      "module": "健壮性",
+      "title": "缺少必需字段返回 422 而非 500",
+      "trace": "NFR-009",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K07",
+      "module": "健壮性",
+      "title": "请求体为非法 JSON 时返回 422 而非 500",
+      "trace": "NFR-009",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-K08",
+      "module": "健壮性",
+      "title": "交易结果取值非法被拒",
+      "trace": "NFR-009",
+      "expected": "HTTP 422",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-J01",
+      "module": "前端",
+      "title": "12 个前端路由均可访问（SPA 回退正常）",
+      "trace": "FR-051",
+      "expected": "全部返回 200 且包含挂载点 #app",
+      "actual": "异常路由: 无",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-J02",
+      "module": "前端",
+      "title": "Vite 开发服务器正常编译入口模块",
+      "trace": "FR-051",
+      "expected": "HTTP 200 且 Content-Type 为 JavaScript",
+      "actual": "HTTP 200 CT=text/javascript",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-J03",
+      "module": "前端",
+      "title": "Vue 单文件组件被正常编译",
+      "trace": "FR-051",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-J04",
+      "module": "前端",
+      "title": "Vite 代理 /api 到后端成功（前后端联调打通）",
+      "trace": "FR-051",
+      "expected": "HTTP 200 且返回后端 JSON（含 state 字段）",
+      "actual": "HTTP 200 body=b'{\"state\":\"FROZEN\",\"product\":{\"id\":\"7dc672a65b19425a8f6e7aa21'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-J05",
+      "module": "前端",
+      "title": "卖家发布页组件可编译",
+      "trace": "FR-051",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS",
+      "note": ""
+    }
+  ]
+}

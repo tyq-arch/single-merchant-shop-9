@@ -1,0 +1,33 @@
+﻿============================= test session starts =============================
+collecting ... collected 28 items
+
+tests/test_buyer_flow.py::test_submit_intent_returns_code_and_position PASSED [  3%]
+tests/test_buyer_flow.py::test_queue_is_first_come_first_served PASSED   [  7%]
+tests/test_buyer_flow.py::test_query_by_code PASSED                      [ 10%]
+tests/test_buyer_flow.py::test_update_info_keeps_position PASSED         [ 14%]
+tests/test_buyer_flow.py::test_cancel_shifts_queue PASSED                [ 17%]
+tests/test_buyer_flow.py::test_invalid_code_rejected PASSED              [ 21%]
+tests/test_buyer_flow.py::test_submit_requires_valid_phone PASSED        [ 25%]
+tests/test_catalog.py::test_no_product_in_sale PASSED                    [ 28%]
+tests/test_catalog.py::test_publish_then_public_visible PASSED           [ 32%]
+tests/test_catalog.py::test_only_one_product_on_sale PASSED              [ 35%]
+tests/test_catalog.py::test_publish_validation PASSED                    [ 39%]
+tests/test_catalog.py::test_manual_freeze_blocks_new_intent PASSED       [ 42%]
+tests/test_catalog.py::test_off_shelf_invalidates_command_code PASSED    [ 46%]
+tests/test_history.py::test_multi_round_history_kept PASSED              [ 50%]
+tests/test_history.py::test_intents_list_and_csv_export PASSED           [ 53%]
+tests/test_history.py::test_history_detail_requires_off_shelf PASSED     [ 57%]
+tests/test_history.py::test_operation_logs_recorded PASSED               [ 60%]
+tests/test_seller_auth.py::test_login_success PASSED                     [ 64%]
+tests/test_seller_auth.py::test_login_wrong_password PASSED              [ 67%]
+tests/test_seller_auth.py::test_no_seller_register_endpoint PASSED       [ 71%]
+tests/test_seller_auth.py::test_seller_endpoint_requires_token PASSED    [ 75%]
+tests/test_seller_auth.py::test_change_password PASSED                   [ 78%]
+tests/test_transaction.py::test_start_then_success PASSED                [ 82%]
+tests/test_transaction.py::test_failure_auto_advance_then_void PASSED    [ 85%]
+tests/test_transaction.py::test_failure_with_empty_queue_returns_on_sale PASSED [ 89%]
+tests/test_transaction.py::test_requeue_only_once PASSED                 [ 92%]
+tests/test_transaction.py::test_void_requires_failed_state PASSED        [ 96%]
+tests/test_transaction.py::test_start_transaction_requires_queue PASSED  [100%]
+
+============================= 28 passed in 5.84s ==============================
