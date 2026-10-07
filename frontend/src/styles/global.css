@@ -1,0 +1,68 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--c-text);
+  background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--c-primary);
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* 通用金额样式 */
+.price {
+  color: var(--c-danger);
+  font-weight: 600;
+}
+
+/* 通用页面标题 */
+.page-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: var(--sp-8) var(--sp-4);
+  color: var(--c-text-sub);
+  text-align: center;
+}
+
+.empty-state__icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+/* 移动端断点：窄屏收紧内边距 */
+@media (max-width: 767px) {
+  .page-title {
+    font-size: var(--fs-lg);
+  }
+}

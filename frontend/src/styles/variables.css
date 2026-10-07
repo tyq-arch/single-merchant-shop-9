@@ -1,0 +1,51 @@
+/* 设计变量 —— 见 docs/05-页面原型设计.md 第 3.2 节 */
+:root {
+  /* 主色与语义色 */
+  --c-primary: #2563eb;
+  --c-primary-hover: #1d4ed8;
+  --c-primary-soft: #eff6ff;
+  --c-danger: #dc2626;
+  --c-danger-soft: #fef2f2;
+  --c-success: #16a34a;
+  --c-success-soft: #f0fdf4;
+  --c-warning: #ea580c;
+  --c-warning-soft: #fff7ed;
+  --c-muted: #64748b;
+  --c-muted-soft: #f1f5f9;
+
+  /* 中性色 */
+  --c-text: #0f172a;
+  --c-text-sub: #475569;
+  --c-text-weak: #94a3b8;
+  --c-border: #e2e8f0;
+  --c-bg: #f8fafc;
+  --c-surface: #ffffff;
+
+  /* 排版 */
+  --fs-sm: 13px;
+  --fs-base: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --lh-base: 1.6;
+
+  /* 间距（4 的倍数） */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* 形状 */
+  --r-card: 12px;
+  --r-btn: 8px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+  /* 买家端布局 */
+  --buyer-max-width: 640px;
+  --touch-min: 44px;
+}
