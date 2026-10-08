@@ -1,10 +1,11 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useSellerStore } from '@/stores/seller'
 
 const route = useRoute()
+const router = useRouter()
 const sellerStore = useSellerStore()
 
 /**
@@ -25,6 +26,17 @@ const activeName = computed(() => {
   if (route.name === 'seller-history-detail') return 'seller-history'
   return route.name
 })
+
+/**
+ * 必须按路由「名字」跳转，不能交给 el-menu 的 router 模式。
+ * el-menu 在 router 模式下执行的是 router.push(index)，index 是字符串时
+ * Vue Router 会把它当成路径（`/seller-publish`）而非路由名，匹配不到就落到
+ * 路由表的兜底重定向，表现为「点菜单跳回买家首页」。
+ */
+function onSelect(name) {
+  if (name === activeName.value) return
+  router.push({ name })
+}
 </script>
 
 <template>
@@ -33,7 +45,7 @@ const activeName = computed(() => {
       <div class="seller-aside__brand">单卖家小店</div>
       <div class="seller-aside__caption">卖家后台</div>
 
-      <el-menu :default-active="activeName" router class="seller-menu">
+      <el-menu :default-active="activeName" class="seller-menu" @select="onSelect">
         <el-menu-item v-for="item in navItems" :key="item.name" :index="item.name">
           <span class="seller-menu__icon">{{ item.icon }}</span>
           <span>{{ item.label }}</span>
