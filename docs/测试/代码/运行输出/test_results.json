@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-10-07 21:19:34",
-  "finished_at": "2026-10-07 21:19:36",
+  "started_at": "2026-10-14 17:45:25",
+  "finished_at": "2026-10-14 17:45:28",
   "backend": "http://127.0.0.1:8000",
   "frontend": "http://127.0.0.1:5173",
   "total": 113,
@@ -33,7 +33,7 @@
       "title": "商品详情接口按 id 返回商品",
       "trace": "FR-043",
       "expected": "HTTP 200 且 product.id 一致",
-      "actual": "HTTP 200 id=3a3359b2a3914250ab3943a89f1c5d93",
+      "actual": "HTTP 200 id=141afe77954840dfa70233e0277059ad",
       "status": "PASS",
       "note": ""
     },
@@ -140,7 +140,7 @@
     {
       "id": "TC-B08",
       "module": "登录鉴权",
-      "title": "新密码少于 6 位被拒绝",
+      "title": "新密码少于 8 位被拒绝",
       "trace": "FR-035",
       "expected": "HTTP 422 VALIDATION_ERROR",
       "actual": "HTTP 422",
@@ -393,7 +393,7 @@
       "title": "口令码为 10 位且不含易混淆字符 0/O/1/I/l",
       "trace": "NFR-004",
       "expected": "长度 10，字符集为 ABCDEFGHJKMNPQRSTUVWXYZ23456789",
-      "actual": "code=VR4NJMJXHZ",
+      "actual": "code=SZ7REGN84Q",
       "status": "PASS",
       "note": ""
     },
@@ -713,7 +713,7 @@
       "title": "历史列表仅包含已下架商品",
       "trace": "FR-004",
       "expected": "列表中包含「历史测试商品」，且全部为 OFF_SHELF",
-      "actual": "total=7 名称=['历史测试商品', '失败重排商品', '交易测试商品', '排队测试商品', '商品A']",
+      "actual": "total=20 名称=['历史测试商品', '失败重排商品', '交易测试商品', '排队测试商品', '商品A']",
       "status": "PASS",
       "note": ""
     },
@@ -723,7 +723,7 @@
       "title": "历史列表交易概览统计失败轮次与最终结果",
       "trace": "FR-004",
       "expected": "failed_rounds=1, final_result=SUCCESS, buyer_count=2",
-      "actual": "{\"failed_rounds\": 1, \"buyer_count\": 2, \"final_result\": \"SUCCESS\", \"final_result_label\": \"交易成功\", \"last_transaction_at\": \"2026-10-07 21:19:36\"}",
+      "actual": "{\"failed_rounds\": 1, \"buyer_count\": 2, \"final_result\": \"SUCCESS\", \"final_result_label\": \"交易成功\", \"last_transaction_at\": \"2026-10-14 17:45:27\"}",
       "status": "PASS",
       "note": ""
     },
@@ -833,7 +833,7 @@
       "title": "每条日志含可读中文描述与时间",
       "trace": "FR-042/NFR-010",
       "expected": "所有日志项 detail 非空且 created_at 存在",
-      "actual": "共 35 条，detail 齐全=True",
+      "actual": "共 85 条，detail 齐全=True",
       "status": "PASS",
       "note": ""
     },
@@ -843,7 +843,7 @@
       "title": "历史列表支持按名称关键词模糊搜索",
       "trace": "FR-004",
       "expected": "搜索「历史」命中「历史测试商品」",
-      "actual": "total=1 名称=['历史测试商品']",
+      "actual": "total=2 名称=['历史测试商品', '历史测试商品']",
       "status": "PASS",
       "note": ""
     },
@@ -853,7 +853,7 @@
       "title": "关键词中的 LIKE 通配符应被转义（_ 不应匹配任意字符）",
       "trace": "FR-004",
       "expected": "搜索「_」应命中 0 条（无商品名含下划线）",
-      "actual": "搜索「_」命中 7 条；不带关键词共 7 条",
+      "actual": "搜索「_」命中 20 条；不带关键词共 20 条",
       "status": "FAIL",
       "note": "缺陷 BUG-002：keyword 未转义 LIKE 通配符 % 和 _，导致搜索「_」或「%」返回全部历史商品"
     },
@@ -893,7 +893,7 @@
       "title": "上传合法 PNG 成功并返回可访问 URL",
       "trace": "FR-001",
       "expected": "HTTP 200 且 url 形如 /uploads/xxx.png",
-      "actual": "HTTP 200 url=/uploads/a7b70ed4799c4a4e8ff48e293652ba32.png",
+      "actual": "HTTP 200 url=/uploads/fb55e3f81e1646cfaaf2be7fcd8b20aa.png",
       "status": "PASS",
       "note": ""
     },
@@ -1033,7 +1033,7 @@
       "title": "口令码只能访问自身对应意向，不可越权",
       "trace": "NFR-004",
       "expected": "A 的查询结果中 order_id 等于 A，B 的等于 B，两者不同",
-      "actual": "A=50b58378 B=ee5a3c9c",
+      "actual": "A=677e786b B=d7cea909",
       "status": "PASS",
       "note": ""
     },
@@ -1123,7 +1123,7 @@
       "title": "Vite 代理 /api 到后端成功（前后端联调打通）",
       "trace": "FR-051",
       "expected": "HTTP 200 且返回后端 JSON（含 state 字段）",
-      "actual": "HTTP 200 body=b'{\"state\":\"FROZEN\",\"product\":{\"id\":\"7dc672a65b19425a8f6e7aa21'",
+      "actual": "HTTP 200 body=b'{\"state\":\"FROZEN\",\"product\":{\"id\":\"29a0422d29774d5985b452aba'",
       "status": "PASS",
       "note": ""
     },

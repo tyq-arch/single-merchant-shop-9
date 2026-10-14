@@ -13,7 +13,7 @@
 | 5 | `05-测试报告.docx` | Word | 测试执行情况、缺陷分析、需求覆盖、结论与遗留问题 |
 | 6 | `06-阶段性评审报告素材-缪茂锦.md` | Markdown | 可直接粘贴进评审报告 Wiki 的「工作任务表」 |
 | 7 | `07-前后端整合运行说明.md` | Markdown | 前后端启动步骤、代理原理、演示流程、排错 |
-| 8 | `证据/` | — | 测试脚本与原始执行数据 |
+| 8 | `代码/` | Python | 测试代码（黑盒功能测试套件、缺陷验证脚本、开发自测用例）与运行输出 |
 
 ### 在线阅读说明
 
@@ -72,7 +72,7 @@ cd frontend && npm install && npm run dev
 cd backend && pytest -v
 
 # 4) 执行黑盒功能测试（113 条，需后端已启动）
-python docs/测试/证据/functional_suite.py
-# 结果打印到控制台，并写入 docs/测试/证据/test_results.json
+python docs/测试/代码/functional_suite.py
+# 结果打印到控制台，并写入 docs/测试/代码/运行输出/test_results.json
 ```
 
