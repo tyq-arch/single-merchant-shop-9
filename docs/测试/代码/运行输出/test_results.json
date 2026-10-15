@@ -1,10 +1,10 @@
 {
-  "started_at": "2026-10-14 17:45:25",
-  "finished_at": "2026-10-14 17:45:28",
+  "started_at": "2026-10-15 08:46:46",
+  "finished_at": "2026-10-15 08:46:49",
   "backend": "http://127.0.0.1:8000",
   "frontend": "http://127.0.0.1:5173",
-  "total": 113,
-  "passed": 111,
+  "total": 117,
+  "passed": 115,
   "failed": 2,
   "results": [
     {
@@ -33,7 +33,7 @@
       "title": "商品详情接口按 id 返回商品",
       "trace": "FR-043",
       "expected": "HTTP 200 且 product.id 一致",
-      "actual": "HTTP 200 id=141afe77954840dfa70233e0277059ad",
+      "actual": "HTTP 200 id=6ac46c255818442eaec170269b1c7763",
       "status": "PASS",
       "note": ""
     },
@@ -120,10 +120,10 @@
     {
       "id": "TC-B06",
       "module": "登录鉴权",
-      "title": "不提供注册接口",
-      "trace": "FR-033",
-      "expected": "HTTP 404",
-      "actual": "HTTP 404",
+      "title": "不提供注册接口与退出登录接口",
+      "trace": "FR-033/FR-034",
+      "expected": "注册接口 404、退出登录接口 404",
+      "actual": "注册 404、退出登录 404",
       "status": "PASS",
       "note": ""
     },
@@ -381,7 +381,7 @@
       "id": "TC-D01",
       "module": "排队口令码",
       "title": "提交意向返回口令码与排队序号 1",
-      "trace": "FR-013/FR-014",
+      "trace": "FR-013/FR-014/FR-048",
       "expected": "HTTP 200, queue_position=1, status=QUEUED, command_code 非空",
       "actual": "HTTP 200 pos=1 status=QUEUED code=True",
       "status": "PASS",
@@ -393,7 +393,7 @@
       "title": "口令码为 10 位且不含易混淆字符 0/O/1/I/l",
       "trace": "NFR-004",
       "expected": "长度 10，字符集为 ABCDEFGHJKMNPQRSTUVWXYZ23456789",
-      "actual": "code=SZ7REGN84Q",
+      "actual": "code=9968Y323QJ",
       "status": "PASS",
       "note": ""
     },
@@ -420,10 +420,10 @@
     {
       "id": "TC-D05",
       "module": "排队口令码",
-      "title": "无效口令码返回 410",
-      "trace": "FR-022/NFR-005",
-      "expected": "HTTP 410 COMMAND_CODE_INVALID",
-      "actual": "HTTP 410 COMMAND_CODE_INVALID",
+      "title": "无效口令码返回 410，且不提供口令码找回接口",
+      "trace": "FR-022/FR-050/NFR-005",
+      "expected": "查询返回 410；找回接口不存在（404 或 405）",
+      "actual": "查询 410、找回 405",
       "status": "PASS",
       "note": ""
     },
@@ -713,7 +713,7 @@
       "title": "历史列表仅包含已下架商品",
       "trace": "FR-004",
       "expected": "列表中包含「历史测试商品」，且全部为 OFF_SHELF",
-      "actual": "total=20 名称=['历史测试商品', '失败重排商品', '交易测试商品', '排队测试商品', '商品A']",
+      "actual": "total=101 名称=['历史测试商品', '失败重排商品', '交易测试商品', '排队测试商品', '商品A']",
       "status": "PASS",
       "note": ""
     },
@@ -723,7 +723,7 @@
       "title": "历史列表交易概览统计失败轮次与最终结果",
       "trace": "FR-004",
       "expected": "failed_rounds=1, final_result=SUCCESS, buyer_count=2",
-      "actual": "{\"failed_rounds\": 1, \"buyer_count\": 2, \"final_result\": \"SUCCESS\", \"final_result_label\": \"交易成功\", \"last_transaction_at\": \"2026-10-14 17:45:27\"}",
+      "actual": "{\"failed_rounds\": 1, \"buyer_count\": 2, \"final_result\": \"SUCCESS\", \"final_result_label\": \"交易成功\", \"last_transaction_at\": \"2026-10-15 08:46:48\"}",
       "status": "PASS",
       "note": ""
     },
@@ -731,7 +731,7 @@
       "id": "TC-F03",
       "module": "历史记录",
       "title": "历史详情完整保留多轮交易记录（不可只留最终结果）",
-      "trace": "FR-031/NFR-015",
+      "trace": "FR-006/FR-007/FR-031/NFR-015",
       "expected": "transactions 为 [FAILED, SUCCESS] 两条",
       "actual": "transactions=['FAILED', 'SUCCESS']",
       "status": "PASS",
@@ -833,7 +833,7 @@
       "title": "每条日志含可读中文描述与时间",
       "trace": "FR-042/NFR-010",
       "expected": "所有日志项 detail 非空且 created_at 存在",
-      "actual": "共 85 条，detail 齐全=True",
+      "actual": "共 391 条，detail 齐全=True",
       "status": "PASS",
       "note": ""
     },
@@ -843,7 +843,7 @@
       "title": "历史列表支持按名称关键词模糊搜索",
       "trace": "FR-004",
       "expected": "搜索「历史」命中「历史测试商品」",
-      "actual": "total=2 名称=['历史测试商品', '历史测试商品']",
+      "actual": "total=8 名称=['历史测试商品', '历史测试商品', '历史测试商品', '历史测试商品', '历史测试商品', '历史测试商品', '历史测试商品', '历史测试商品']",
       "status": "PASS",
       "note": ""
     },
@@ -853,7 +853,7 @@
       "title": "关键词中的 LIKE 通配符应被转义（_ 不应匹配任意字符）",
       "trace": "FR-004",
       "expected": "搜索「_」应命中 0 条（无商品名含下划线）",
-      "actual": "搜索「_」命中 20 条；不带关键词共 20 条",
+      "actual": "搜索「_」命中 101 条；不带关键词共 101 条",
       "status": "FAIL",
       "note": "缺陷 BUG-002：keyword 未转义 LIKE 通配符 % 和 _，导致搜索「_」或「%」返回全部历史商品"
     },
@@ -893,7 +893,7 @@
       "title": "上传合法 PNG 成功并返回可访问 URL",
       "trace": "FR-001",
       "expected": "HTTP 200 且 url 形如 /uploads/xxx.png",
-      "actual": "HTTP 200 url=/uploads/fb55e3f81e1646cfaaf2be7fcd8b20aa.png",
+      "actual": "HTTP 200 url=/uploads/d0b30d4d4001407c814116e09ceddb28.png",
       "status": "PASS",
       "note": ""
     },
@@ -1011,7 +1011,7 @@
       "id": "TC-K01",
       "module": "安全",
       "title": "历史搜索关键词中的 SQL 注入载荷不生效",
-      "trace": "NFR-005",
+      "trace": "NFR-002/NFR-005",
       "expected": "HTTP 200 且返回 0 条（按字面匹配），无数据库错误",
       "actual": "HTTP 200 total=0",
       "status": "PASS",
@@ -1033,7 +1033,7 @@
       "title": "口令码只能访问自身对应意向，不可越权",
       "trace": "NFR-004",
       "expected": "A 的查询结果中 order_id 等于 A，B 的等于 B，两者不同",
-      "actual": "A=677e786b B=d7cea909",
+      "actual": "A=93d180e1 B=9a5f1e4b",
       "status": "PASS",
       "note": ""
     },
@@ -1041,7 +1041,7 @@
       "id": "TC-K04",
       "module": "安全",
       "title": "含 HTML 标签的商品名按原文存储（转义责任在前端）",
-      "trace": "NFR-005",
+      "trace": "NFR-002/NFR-005",
       "expected": "接口原样返回，前端 Vue 插值自动转义（`{{ }}`）",
       "actual": "存储值=<script>alert(1)</script>",
       "status": "PASS",
@@ -1088,10 +1088,50 @@
       "note": ""
     },
     {
+      "id": "TC-L01",
+      "module": "性能",
+      "title": "商品详情接口响应时间小于 2 秒",
+      "trace": "NFR-001",
+      "expected": "各次响应耗时均小于 2000 ms",
+      "actual": "平均 7.0 ms，最慢 23.2 ms（5 次采样）",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-L02",
+      "module": "性能",
+      "title": "在售商品状态接口响应时间小于 2 秒",
+      "trace": "NFR-001",
+      "expected": "各次响应耗时均小于 2000 ms",
+      "actual": "平均 7.4 ms，最慢 25.4 ms（5 次采样）",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-L03",
+      "module": "性能",
+      "title": "卖家后台列表接口响应时间小于 2 秒",
+      "trace": "NFR-001",
+      "expected": "各次响应耗时均小于 2000 ms",
+      "actual": "平均 9.1 ms，最慢 29.9 ms（9 次采样）（历史 / 意向 / 日志，每项 3 次）",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "id": "TC-L04",
+      "module": "性能",
+      "title": "凭口令码查询接口响应时间小于 2 秒",
+      "trace": "NFR-001",
+      "expected": "各次响应耗时均小于 2000 ms",
+      "actual": "平均 13.9 ms，最慢 24.5 ms（5 次采样）（口令码 JW4V83ZB5N）",
+      "status": "PASS",
+      "note": ""
+    },
+    {
       "id": "TC-J01",
       "module": "前端",
-      "title": "12 个前端路由均可访问（SPA 回退正常）",
-      "trace": "FR-051",
+      "title": "12 个前端路由均可访问（含买家端，SPA 回退正常）",
+      "trace": "FR-051/FR-052",
       "expected": "全部返回 200 且包含挂载点 #app",
       "actual": "异常路由: 无",
       "status": "PASS",
@@ -1123,7 +1163,7 @@
       "title": "Vite 代理 /api 到后端成功（前后端联调打通）",
       "trace": "FR-051",
       "expected": "HTTP 200 且返回后端 JSON（含 state 字段）",
-      "actual": "HTTP 200 body=b'{\"state\":\"FROZEN\",\"product\":{\"id\":\"29a0422d29774d5985b452aba'",
+      "actual": "HTTP 200 body=b'{\"state\":\"ON_SALE\",\"product\":{\"id\":\"c28f5f00d0244ca1b07bbe81'",
       "status": "PASS",
       "note": ""
     },

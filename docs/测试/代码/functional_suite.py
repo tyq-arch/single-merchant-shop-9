@@ -6,7 +6,7 @@
 输出：控制台可读报告 + 运行输出/test_results.json（供测试报告与用例表引用）
 建议：运行前重置后端数据库，以获得确定性结果
 
-测试模块划分（共 113 条用例）：
+测试模块划分（共 117 条用例）：
   A  公开商品浏览                FR-043 ~ FR-046
   B  卖家登录与鉴权              FR-032 ~ FR-035
   C  商品发布与管理              FR-001 ~ FR-012
@@ -18,11 +18,13 @@
   I  并发一致性                  NFR-013 / NFR-014
   J  前端页面与前后端联调         FR-051 / FR-052
   K  安全与健壮性                NFR-005 / NFR-006 / NFR-009
+  L  性能（响应时间）            NFR-001
 """
 import io
 import json
 import os
 import threading
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -263,9 +265,12 @@ def suite_b(tok):
     expect("TC-B05", "登录鉴权", "伪造令牌被拒绝", "NFR-006",
            "HTTP 401", "HTTP %s" % s, s == 401)
 
-    s, b, _ = api("POST", "/api/seller/register", {})
-    expect("TC-B06", "登录鉴权", "不提供注册接口", "FR-033",
-           "HTTP 404", "HTTP %s" % s, s == 404)
+    s_reg, _b1, _ = api("POST", "/api/seller/register", {})
+    s_out, _b2, _ = api("POST", "/api/seller/logout", {}, token=tok)
+    expect("TC-B06", "登录鉴权", "不提供注册接口与退出登录接口", "FR-033/FR-034",
+           "注册接口 404、退出登录接口 404",
+           "注册 %s、退出登录 %s" % (s_reg, s_out),
+           s_reg == 404 and s_out == 404)
 
     s, b, _ = api("POST", "/api/seller/password",
                   {"old_password": "wrongold", "new_password": "newpass123"}, token=tok)
@@ -434,7 +439,7 @@ def suite_d(tok):
 
     s, b = submit(pid, "张三", "13800001111")
     code1 = b.get("command_code") if isinstance(b, dict) else None
-    expect("TC-D01", "排队口令码", "提交意向返回口令码与排队序号 1", "FR-013/FR-014",
+    expect("TC-D01", "排队口令码", "提交意向返回口令码与排队序号 1", "FR-013/FR-014/FR-048",
            "HTTP 200, queue_position=1, status=QUEUED, command_code 非空",
            "HTTP %s pos=%s status=%s code=%s" % (s, b.get("queue_position"),
                                                  b.get("order", {}).get("status"), bool(code1)),
@@ -461,10 +466,12 @@ def suite_d(tok):
            s == 200 and b["position"] == 1 and b["can_edit"] and b["can_cancel"])
 
     s, b, _ = api("GET", "/api/buyer/intents/ZZZZZZZZZZ")
-    expect("TC-D05", "排队口令码", "无效口令码返回 410", "FR-022/NFR-005",
-           "HTTP 410 COMMAND_CODE_INVALID",
-           "HTTP %s %s" % (s, b.get("error", {}).get("code") if isinstance(b, dict) else b),
-           s == 410)
+    s_rec, _b3, _ = api("POST", "/api/buyer/intents/recover", {"code": "ZZZZZZZZZZ"})
+    expect("TC-D05", "排队口令码", "无效口令码返回 410，且不提供口令码找回接口",
+           "FR-022/FR-050/NFR-005",
+           "查询返回 410；找回接口不存在（404 或 405）",
+           "查询 %s、找回 %s" % (s, s_rec),
+           s == 410 and s_rec in (404, 405))
 
     s, b, _ = api("PATCH", "/api/buyer/intents",
                   {"code": code1, "buyer_phone": "13900002222"})
@@ -692,7 +699,7 @@ def suite_f(tok):
     s, det, _ = api("GET", "/api/seller/history/%s" % pid, token=tok)
     results = [t["result"] for t in det["transactions"]]
     expect("TC-F03", "历史记录", "历史详情完整保留多轮交易记录（不可只留最终结果）",
-           "FR-031/NFR-015",
+           "FR-006/FR-007/FR-031/NFR-015",
            "transactions 为 [FAILED, SUCCESS] 两条",
            "transactions=%s" % results,
            results == ["FAILED", "SUCCESS"])
@@ -946,7 +953,7 @@ def suite_j():
         s, body, headers = front_get(path)
         if s != 200 or b'id="app"' not in body:
             bad.append("%s(HTTP %s)" % (path, s))
-    expect("TC-J01", "前端", "12 个前端路由均可访问（SPA 回退正常）", "FR-051",
+    expect("TC-J01", "前端", "12 个前端路由均可访问（含买家端，SPA 回退正常）", "FR-051/FR-052",
            "全部返回 200 且包含挂载点 #app",
            "异常路由: %s" % (bad if bad else "无"), not bad)
 
@@ -992,7 +999,7 @@ def suite_k(tok):
     # SQL 注入尝试（keyword 走参数化查询，应被当作普通字符串）
     s, b, _ = api("GET", "/api/seller/history?keyword=%27%20OR%20%271%27%3D%271&page_size=100",
                   token=tok)
-    expect("TC-K01", "安全", "历史搜索关键词中的 SQL 注入载荷不生效", "NFR-005",
+    expect("TC-K01", "安全", "历史搜索关键词中的 SQL 注入载荷不生效", "NFR-002/NFR-005",
            "HTTP 200 且返回 0 条（按字面匹配），无数据库错误",
            "HTTP %s total=%s" % (s, b.get("total") if isinstance(b, dict) else b),
            s == 200 and b["total"] == 0)
@@ -1018,7 +1025,7 @@ def suite_k(tok):
     reset_shop(tok)
     payload = '<script>alert(1)</script>'
     s, b = publish(tok, payload, 10)
-    expect("TC-K04", "安全", "含 HTML 标签的商品名按原文存储（转义责任在前端）", "NFR-005",
+    expect("TC-K04", "安全", "含 HTML 标签的商品名按原文存储（转义责任在前端）", "NFR-002/NFR-005",
            "接口原样返回，前端 Vue 插值自动转义（`{{ }}`）",
            "存储值=%s" % (b.get("product", {}).get("name") if isinstance(b, dict) else b),
            s == 200 and b["product"]["name"] == payload,
@@ -1062,6 +1069,69 @@ def suite_k(tok):
 
 
 # ==========================================================================
+# ==========================================================================
+# 测试模块 L —— 性能（响应时间）
+# 需求追溯：NFR-001
+# 测试内容：
+#   1) 商品详情接口（买家端主路径，NFR-001 明示指标）响应时间小于 2 秒
+#   2) 在售商品状态接口响应时间小于 2 秒
+#   3) 卖家后台核心读接口（历史商品、意向购买人、操作日志）响应时间小于 2 秒
+#   4) 凭口令码查询接口响应时间小于 2 秒
+# 说明：以客户端往返耗时为准，每次采样本前先预热 1 次，正式采样 5 次，
+#       判定标准为「最慢一次的耗时小于 2000 ms」。
+# ==========================================================================
+def suite_l(tok):
+    print("\n[L] 性能·响应时间 (NFR-001)")
+    reset_shop(tok)
+
+    LIMIT_MS = 2000.0
+    ROUNDS = 5
+
+    pid = publish(tok, "性能测试商品", 199)[1]["product"]["id"]
+    _s, sb = submit(pid, "性能买家甲", "13800000001")
+    code = sb.get("command_code") if isinstance(sb, dict) else None
+
+    def timed(fn, rounds=ROUNDS):
+        fn()  # 预热一次，排除首次请求的连接与编译开销
+        samples = []
+        for _ in range(rounds):
+            t0 = time.perf_counter()
+            fn()
+            samples.append((time.perf_counter() - t0) * 1000.0)
+        return samples
+
+    def judge(tcid, title, samples, extra=""):
+        avg = sum(samples) / len(samples)
+        worst = max(samples)
+        expect(tcid, "性能", title, "NFR-001",
+               "各次响应耗时均小于 %.0f ms" % LIMIT_MS,
+               "平均 %.1f ms，最慢 %.1f ms（%d 次采样）%s"
+               % (avg, worst, len(samples), extra),
+               worst < LIMIT_MS)
+
+    # 1) 商品详情（买家端主路径）
+    judge("TC-L01", "商品详情接口响应时间小于 2 秒",
+          timed(lambda: api("GET", "/api/products/%s" % pid)))
+
+    # 2) 在售商品状态
+    judge("TC-L02", "在售商品状态接口响应时间小于 2 秒",
+          timed(lambda: api("GET", "/api/products/current")))
+
+    # 3) 卖家后台核心读接口
+    samples = []
+    for path in ("/api/seller/history?page_size=100",
+                 "/api/seller/products/%s/intents?page_size=100" % pid,
+                 "/api/seller/logs?page_size=100"):
+        samples += timed(lambda p=path: api("GET", p, token=tok), rounds=3)
+    judge("TC-L03", "卖家后台列表接口响应时间小于 2 秒", samples,
+          "（历史 / 意向 / 日志，每项 3 次）")
+
+    # 4) 凭口令码查询
+    judge("TC-L04", "凭口令码查询接口响应时间小于 2 秒",
+          timed(lambda: api("GET", "/api/buyer/intents/%s" % code)),
+          "（口令码 %s）" % (code or "无效"))
+
+
 def main():
     print("=" * 78)
     print("《在线购物系统（单卖家版）》黑盒功能测试套件 —— 缪茂锦（测试岗）")
@@ -1076,7 +1146,7 @@ def main():
     reset_shop(tok)
 
     for fn in (suite_a, suite_b, suite_c, suite_d, suite_e, suite_f, suite_g, suite_h,
-               suite_i, suite_k):
+               suite_i, suite_k, suite_l):
         try:
             fn(tok)
         except Exception as e:
