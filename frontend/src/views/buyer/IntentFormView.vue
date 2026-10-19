@@ -8,12 +8,12 @@ import { getCurrentProduct } from '@/api/product'
 import ProductImage from '@/components/ProductImage.vue'
 import { useBuyerStore } from '@/stores/buyer'
 import { formatPrice } from '@/utils/format'
+import { PHONE_LENGTH, validatePhone } from '@/utils/validate'
 
 /**
  * B2 提交购买意向 —— FR-013 / FR-047。
- * 校验规则与后端 BuyerIntentCreateRequest 保持一致（见技术栈报告 3.8 节）。
+ * 手机号按 11 位大陆号码校验，规则见 utils/validate.js。
  */
-const PHONE_RE = /^[0-9+\-\s]{5,20}$/
 
 const router = useRouter()
 const buyerStore = useBuyerStore()
@@ -41,9 +41,13 @@ async function load() {
   }
 }
 
+/** 失焦即时校验手机号，不必等点提交 */
+function validatePhoneField() {
+  errors.phone = validatePhone(form.phone)
+}
+
 function validate() {
   errors.name = ''
-  errors.phone = ''
 
   const name = form.name.trim()
   if (!name) {
@@ -52,12 +56,7 @@ function validate() {
     errors.name = '姓名不能超过 64 个字'
   }
 
-  const phone = form.phone.trim()
-  if (!phone) {
-    errors.phone = '请输入联系电话'
-  } else if (!PHONE_RE.test(phone)) {
-    errors.phone = '联系电话格式不正确'
-  }
+  errors.phone = validatePhone(form.phone)
 
   return !errors.name && !errors.phone
 }
@@ -124,9 +123,11 @@ onMounted(load)
             class="field__input"
             :class="{ 'field__input--error': errors.phone }"
             type="tel"
-            placeholder="请输入联系电话"
-            maxlength="20"
+            inputmode="numeric"
+            placeholder="请输入 11 位手机号"
+            :maxlength="PHONE_LENGTH"
             autocomplete="tel"
+            @blur="validatePhoneField"
           />
           <span v-if="errors.phone" class="field__error">{{ errors.phone }}</span>
         </label>

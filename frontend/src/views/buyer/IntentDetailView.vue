@@ -7,6 +7,7 @@ import { cancelIntent, queryIntent, updateIntent } from '@/api/buyer'
 import StatusTag from '@/components/StatusTag.vue'
 import { useBuyerStore } from '@/stores/buyer'
 import { formatPrice } from '@/utils/format'
+import { PHONE_LENGTH, validatePhone } from '@/utils/validate'
 
 /**
  * B5 意向详情与管理 —— FR-022 / FR-023 / FR-024 / FR-025。
@@ -14,7 +15,6 @@ import { formatPrice } from '@/utils/format'
  * 渲染完全由后端下发的 can_edit / can_cancel 驱动：
  * 排队中才显示修改与撤销入口，进入交易后两者均不可用。
  */
-const PHONE_RE = /^[0-9+\-\s]{5,20}$/
 
 const router = useRouter()
 const buyerStore = useBuyerStore()
@@ -69,6 +69,16 @@ function startEdit() {
   editing.value = true
 }
 
+/** 失焦即时校验；号码未改动时不提示，避免历史数据触发误报 */
+function validatePhoneField() {
+  const phone = editForm.phone.trim()
+  if (!phone || phone === order.value?.buyer_phone) {
+    editErrors.phone = ''
+    return
+  }
+  editErrors.phone = validatePhone(phone)
+}
+
 async function submitEdit() {
   if (actionLoading.value) return
 
@@ -91,10 +101,8 @@ async function submitEdit() {
   }
 
   if (phone && phone !== order.value?.buyer_phone) {
-    if (!PHONE_RE.test(phone)) {
-      editErrors.phone = '联系电话格式不正确'
-      return
-    }
+    editErrors.phone = validatePhone(phone)
+    if (editErrors.phone) return
     payload.buyer_phone = phone
     changed = true
   }
@@ -246,7 +254,10 @@ onMounted(load)
               class="field__input"
               :class="{ 'field__input--error': editErrors.phone }"
               type="tel"
-              maxlength="20"
+              inputmode="numeric"
+              placeholder="请输入 11 位手机号"
+              :maxlength="PHONE_LENGTH"
+              @blur="validatePhoneField"
             />
             <span v-if="editErrors.phone" class="field__error">{{ editErrors.phone }}</span>
           </label>
