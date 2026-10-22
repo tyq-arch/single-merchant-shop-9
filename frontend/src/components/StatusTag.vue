@@ -15,14 +15,16 @@ const props = defineProps({
 })
 
 const VARIANT_BY_STATUS = {
-  // 商品状态
+  // 商品状态：草稿 / 在售 / 冻结 / 售罄下架 / 手动下架
+  DRAFT: 'muted',
   ON_SALE: 'success',
   FROZEN: 'warning',
+  SOLD_OUT: 'danger',
   OFF_SHELF: 'muted',
   // 意向状态
   QUEUED: 'primary',
-  IN_TRANSACTION: 'warning',
   REQUEUED: 'primary',
+  IN_TRANSACTION: 'warning',
   SUCCESS: 'success',
   FAILED: 'danger',
   CANCELLED: 'muted',

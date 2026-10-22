@@ -9,14 +9,17 @@ const router = useRouter()
 const sellerStore = useSellerStore()
 
 /**
- * 后台导航 —— 依据需求 3.9 节「卖家后台功能入口」。
- * 刻意不含：编辑商品（FR-002）、退出登录（FR-034）、注册（FR-033）。
+ * 后台导航 —— 依据需求 3.8 节「卖家后台功能入口」。
+ * 刻意不含：编辑商品（FR-007）、退出登录（FR-036）、注册（FR-036）。
  */
 const navItems = [
   { name: 'seller-dashboard', label: '工作台', icon: '🏠' },
-  { name: 'seller-publish', label: '发布商品', icon: '📦' },
-  { name: 'seller-intents', label: '意向购买人', icon: '👥' },
-  { name: 'seller-history', label: '历史商品', icon: '🗂️' },
+  { name: 'seller-products', label: '商品管理', icon: '📦' },
+  { name: 'seller-publish', label: '发布商品', icon: '➕' },
+  { name: 'seller-categories', label: '类别管理', icon: '🗂️' },
+  { name: 'seller-intents', label: '意向队列', icon: '👥' },
+  { name: 'seller-history', label: '历史商品', icon: '📚' },
+  { name: 'seller-customers', label: '客户台账', icon: '🧾' },
   { name: 'seller-password', label: '修改密码', icon: '🔑' },
   { name: 'seller-logs', label: '操作日志', icon: '📋' },
 ]
@@ -30,8 +33,8 @@ const activeName = computed(() => {
 /**
  * 必须按路由「名字」跳转，不能交给 el-menu 的 router 模式。
  * el-menu 在 router 模式下执行的是 router.push(index)，index 是字符串时
- * Vue Router 会把它当成路径（`/seller-publish`）而非路由名，匹配不到就落到
- * 路由表的兜底重定向，表现为「点菜单跳回买家首页」。
+ * Vue Router 会把它当成路径（`/seller-products`）而非路由名，匹配不到就落到
+ * 路由表的兜底重定向。
  */
 function onSelect(name) {
   if (name === activeName.value) return

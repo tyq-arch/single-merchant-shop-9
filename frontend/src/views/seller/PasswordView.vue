@@ -23,7 +23,7 @@ const rules = {
   oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 128, message: '新密码长度需为 6–128 位', trigger: 'blur' },
+    { min: 8, max: 128, message: '卖家新密码长度需为 8–128 位', trigger: 'blur' },
   ],
   confirmPassword: [
     { required: true, message: '请再次输入新密码', trigger: 'blur' },

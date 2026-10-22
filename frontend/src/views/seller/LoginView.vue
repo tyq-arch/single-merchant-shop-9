@@ -95,6 +95,10 @@ async function onSubmit() {
       <p class="login-card__hint">
         默认账号：seller / seller123
       </p>
+
+      <p class="login-card__back">
+        <router-link to="/">我是买家，返回买家端 →</router-link>
+      </p>
     </div>
   </div>
 </template>
@@ -144,6 +148,12 @@ async function onSubmit() {
   margin: var(--sp-5) 0 0;
   font-size: var(--fs-sm);
   color: var(--c-text-weak);
+  text-align: center;
+}
+
+.login-card__back {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
   text-align: center;
 }
 </style>

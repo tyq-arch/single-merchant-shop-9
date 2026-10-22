@@ -1,86 +1,90 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
-import { uploadImage, validateImage } from '@/api/file'
-import { publishProduct } from '@/api/seller'
-import ProductImage from '@/components/ProductImage.vue'
+import { createProduct, listCategories } from '@/api/seller'
+import ImageUploader from '@/components/ImageUploader.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
+import { toCascaderOptions } from '@/utils/category'
 
 /**
- * S3 发布商品 —— FR-001 / FR-008 / FR-036 / NFR-012。
+ * S3 发布商品 —— FR-002 / FR-003 / FR-008 / FR-009 / FR-015A。
  *
- * 刻意不提供商品编辑页：发布后名称、描述、图片、价格均不可修改（FR-002 / AC-026），
- * 要调整只能下架后重新发布。
+ * 商品发布后名称、描述、图片、价格、类别均不可修改，唯一可动字段为库存。
  */
 const router = useRouter()
 
 const formRef = ref()
-const fileInput = ref(null)
 const submitting = ref(false)
-const uploading = ref(false)
-const imageUrl = ref('')
+const categoriesLoading = ref(true)
+const categoryOptions = ref([])
 
 const form = reactive({
+  categoryId: null,
   name: '',
-  price: null,
+  price: 0.01,
+  stock: 0,
   description: '',
 })
 
-const rules = {
-  name: [
-    { required: true, message: '请输入商品名称', trigger: 'blur' },
-    { max: 120, message: '商品名称不能超过 120 字', trigger: 'blur' },
-  ],
-  price: [
-    { required: true, message: '请输入商品价格', trigger: 'blur' },
-    {
-      validator: (_rule, value, callback) => {
-        const num = Number(value)
-        if (!Number.isFinite(num) || num <= 0) {
-          callback(new Error('价格需大于 0'))
-        } else if (num > 9999999) {
-          callback(new Error('价格不能超过 9999999 元'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
-  description: [{ max: 2000, message: '商品描述不能超过 2000 字', trigger: 'blur' }],
+const images = ref([])
+
+const cascaderProps = {
+  value: 'value',
+  label: 'label',
+  children: 'children',
+  emitPath: false,
 }
 
-function pickFile() {
-  fileInput.value?.click()
-}
-
-async function onFileChange(event) {
-  const file = event.target.files?.[0]
-  // 清空 value，使再次选择同一文件也能触发 change
-  event.target.value = ''
-  if (!file) return
-
-  const invalidReason = validateImage(file)
-  if (invalidReason) {
-    ElMessage.error(invalidReason)
+function priceValidator(_rule, value, callback) {
+  const price = Number(value)
+  if (!Number.isFinite(price) || price <= 0) {
+    callback(new Error('价格必须大于 0'))
     return
   }
+  if (price > 9999999) {
+    callback(new Error('价格不能超过 9999999'))
+    return
+  }
+  callback()
+}
 
-  uploading.value = true
+function stockValidator(_rule, value, callback) {
+  const stock = Number(value)
+  if (!Number.isInteger(stock) || stock < 0) {
+    callback(new Error('库存必须为非负整数'))
+    return
+  }
+  callback()
+}
+
+const rules = {
+  categoryId: [{ required: true, message: '请选择二级类别', trigger: 'change' }],
+  name: [
+    { required: true, message: '请输入商品名称', trigger: 'blur' },
+    { max: 120, message: '商品名称不能超过 120 个字符', trigger: 'blur' },
+  ],
+  price: [
+    { required: true, message: '请输入价格', trigger: 'blur' },
+    { validator: priceValidator, trigger: 'blur' },
+  ],
+  stock: [
+    { required: true, message: '请输入库存', trigger: 'blur' },
+    { validator: stockValidator, trigger: 'blur' },
+  ],
+}
+
+async function loadCategories() {
+  categoriesLoading.value = true
   try {
-    const data = await uploadImage(file)
-    imageUrl.value = data.url
-    ElMessage.success('图片上传成功')
+    const data = await listCategories()
+    categoryOptions.value = toCascaderOptions(data.items)
   } catch (error) {
     ElMessage.error(error.message)
   } finally {
-    uploading.value = false
+    categoriesLoading.value = false
   }
-}
-
-function removeImage() {
-  imageUrl.value = ''
 }
 
 async function onSubmit() {
@@ -92,51 +96,73 @@ async function onSubmit() {
     return
   }
 
+  const plainText = form.description.replace(/<[^>]*>/g, '').trim()
+  if (plainText.length > 20000) {
+    ElMessage.warning('商品描述不能超过 20000 个字符')
+    return
+  }
+
   submitting.value = true
   try {
-    const payload = {
+    const data = await createProduct({
       name: form.name.trim(),
       price: Number(form.price),
-    }
-    const description = form.description.trim()
-    if (description) payload.description = description
-    if (imageUrl.value) payload.image_url = imageUrl.value
-
-    const result = await publishProduct(payload)
-    ElMessage.success(result?.message || '商品发布成功')
-    router.replace({ name: 'seller-dashboard' })
+      description: form.description || null,
+      stock: Number(form.stock),
+      category_id: form.categoryId,
+      image_urls: images.value,
+    })
+    ElMessage.success(data?.message || '商品发布成功')
+    router.push({ name: 'seller-products' })
   } catch (error) {
     ElMessage.error(error.message)
   } finally {
     submitting.value = false
   }
 }
+
+onMounted(loadCategories)
 </script>
 
 <template>
-  <el-card shadow="never">
+  <el-card v-loading="categoriesLoading" shadow="never">
     <el-alert
+      v-if="!categoryOptions.length && !categoriesLoading"
       type="warning"
       :closable="false"
       show-icon
-      title="同一时间只能有一件商品在售，且发布后信息不可修改"
-      description="名称、描述、图片、价格在发布后均无法编辑。如需调整，请先下架当前商品，再重新发布。"
       class="publish__alert"
-    />
+    >
+      还没有可用类别。商品必须归属二级类别，请先到
+      <router-link :to="{ name: 'seller-categories' }">类别管理</router-link>
+      创建一级和二级类别。
+    </el-alert>
 
     <el-form
       ref="formRef"
       :model="form"
       :rules="rules"
       label-width="120px"
-      class="publish__form"
+      class="publish-form"
     >
+      <el-form-item label="商品类别" prop="categoryId">
+        <el-cascader
+          v-model="form.categoryId"
+          :options="categoryOptions"
+          :props="cascaderProps"
+          placeholder="请选择二级类别（大类 / 小类）"
+          class="publish-form__control"
+        />
+        <p class="publish-form__hint">商品必须挂在二级类别（小类）下。</p>
+      </el-form-item>
+
       <el-form-item label="商品名称" prop="name">
         <el-input
           v-model="form.name"
+          placeholder="请输入商品名称"
           maxlength="120"
           show-word-limit
-          placeholder="请输入商品名称"
+          class="publish-form__control"
         />
       </el-form-item>
 
@@ -148,46 +174,44 @@ async function onSubmit() {
           :precision="2"
           :step="1"
           controls-position="right"
-          placeholder="0.00"
+          class="publish-form__control"
         />
       </el-form-item>
 
-      <el-form-item label="商品描述" prop="description">
-        <el-input
-          v-model="form.description"
-          type="textarea"
-          :rows="4"
-          maxlength="2000"
-          show-word-limit
-          placeholder="选填，介绍一下这件商品"
+      <el-form-item label="库存数量" prop="stock">
+        <el-input-number
+          v-model="form.stock"
+          :min="0"
+          :max="999999"
+          :precision="0"
+          :step="1"
+          controls-position="right"
+          class="publish-form__control"
         />
+        <p class="publish-form__hint">
+          库存为 0 时商品直接进入「售罄下架」，补货到大于 0 会自动恢复在售。
+        </p>
       </el-form-item>
 
-      <el-form-item label="商品主图">
-        <div class="upload">
-          <ProductImage v-if="imageUrl" :src="imageUrl" ratio="1 / 1" alt="商品主图" />
+      <el-form-item label="商品图片">
+        <ImageUploader v-model="images" />
+      </el-form-item>
 
-          <div class="upload__actions">
-            <el-button :loading="uploading" @click="pickFile">
-              {{ imageUrl ? '重新上传' : '＋ 点击上传' }}
-            </el-button>
-            <el-button v-if="imageUrl" link type="danger" @click="removeImage">移除</el-button>
-            <p class="upload__hint">选填，最多 1 张主图；支持 jpg / png / gif / webp，≤ 5MB</p>
-          </div>
-        </div>
-
-        <input
-          ref="fileInput"
-          class="upload__input"
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          @change="onFileChange"
-        />
+      <el-form-item label="商品描述">
+        <RichTextEditor v-model="form.description" />
       </el-form-item>
 
       <el-form-item>
-        <el-button @click="router.back()">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="onSubmit">确认发布</el-button>
+        <el-alert type="info" :closable="false" show-icon class="publish-form__notice">
+          商品发布后不可编辑（名称、描述、图片、价格、类别均定死），仅库存可调整。
+        </el-alert>
+      </el-form-item>
+
+      <el-form-item>
+        <el-button type="primary" :loading="submitting" @click="onSubmit">
+          发布商品
+        </el-button>
+        <el-button @click="router.push({ name: 'seller-products' })">取消</el-button>
       </el-form-item>
     </el-form>
   </el-card>
@@ -195,39 +219,26 @@ async function onSubmit() {
 
 <style scoped>
 .publish__alert {
-  margin-bottom: var(--sp-5);
+  margin-bottom: var(--sp-4);
 }
 
-.publish__form {
-  max-width: 720px;
+.publish-form {
+  max-width: 860px;
 }
 
-.upload {
-  display: flex;
-  gap: var(--sp-4);
-  align-items: flex-start;
+.publish-form__control {
+  width: 100%;
+  max-width: 420px;
 }
 
-.upload :deep(.product-image) {
-  width: 120px;
-  flex: none;
-}
-
-.upload__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.upload__hint {
-  flex-basis: 100%;
+.publish-form__hint {
+  width: 100%;
   margin: var(--sp-1) 0 0;
   font-size: var(--fs-sm);
   color: var(--c-text-weak);
 }
 
-.upload__input {
-  display: none;
+.publish-form__notice {
+  margin-bottom: 0;
 }
 </style>

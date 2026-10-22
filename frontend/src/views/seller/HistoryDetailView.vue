@@ -1,40 +1,35 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 import { getHistoryDetail } from '@/api/seller'
+import EmptyState from '@/components/EmptyState.vue'
 import ProductImage from '@/components/ProductImage.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { formatPrice } from '@/utils/format'
 
 /**
- * S6 历史商品详情 —— FR-005 / FR-006 / FR-038 / AC-029 / AC-031 / NFR-015。
- *
- * 必须完整展示每一轮交易，不可只显示最终结果。
- * 买家手机号由后端统一脱敏（历史商品必然已下架）。
- * 注意：后端 buyers 项用的是 created_at（非列表接口的 submitted_at）。
+ * S6 历史商品详情 —— FR-012 / FR-033。
+ * 保留该商品全部意向客户与每一次交易记录（含失败轮次）。
  */
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
+const errorState = ref('')
 const detail = ref(null)
-const errorText = ref('')
-
-const summary = computed(() => detail.value?.transaction_summary || {})
-
-/** 后端按时间正序返回，展示改为倒序（最近的在最上） */
-const transactions = computed(() => [...(detail.value?.transactions || [])].reverse())
+const activeImage = ref('')
 
 async function load() {
   loading.value = true
-  errorText.value = ''
+  errorState.value = ''
   try {
-    detail.value = await getHistoryDetail(route.params.id)
+    const data = await getHistoryDetail(route.params.id)
+    detail.value = data
+    activeImage.value = data.primary_image || ''
   } catch (error) {
-    errorText.value = error.message
-    ElMessage.error(error.message)
+    errorState.value = error.message
   } finally {
     loading.value = false
   }
@@ -45,241 +40,239 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="history-detail">
-    <template v-if="!loading">
-      <el-card v-if="errorText" shadow="never">
-        <div class="empty-state">
-          <div class="empty-state__icon">⚠️</div>
-          <p class="empty-state__text">{{ errorText }}</p>
-          <el-button type="primary" @click="router.push({ name: 'seller-history' })">
-            返回历史列表
-          </el-button>
+    <EmptyState
+      v-if="errorState && !loading"
+      icon="⚠️"
+      :text="errorState"
+      hint="只有已售罄下架或手动下架的商品才进入历史记录"
+    >
+      <el-button @click="router.push({ name: 'seller-history' })">返回历史商品</el-button>
+    </EmptyState>
+
+    <template v-else-if="detail">
+      <el-card shadow="never">
+        <template #header>
+          <div class="history-detail__head">
+            <span>商品信息</span>
+            <el-button link type="primary" @click="router.push({ name: 'seller-history' })">
+              ← 返回历史商品
+            </el-button>
+          </div>
+        </template>
+
+        <div class="history-detail__product">
+          <div class="history-detail__gallery">
+            <ProductImage :src="activeImage" :alt="detail.name" ratio="1 / 1" />
+            <div v-if="(detail.images || []).length > 1" class="history-detail__thumbs">
+              <button
+                v-for="image in detail.images"
+                :key="image.id"
+                class="history-detail__thumb"
+                :class="{ 'history-detail__thumb--active': image.url === activeImage }"
+                type="button"
+                @click="activeImage = image.url"
+              >
+                <img :src="image.url" :alt="detail.name" />
+              </button>
+            </div>
+          </div>
+
+          <div class="history-detail__info">
+            <div class="history-detail__title-row">
+              <h2 class="history-detail__name">{{ detail.name }}</h2>
+              <StatusTag :status="detail.status" :label="detail.status_label" size="large" />
+            </div>
+            <p class="history-detail__price price">{{ formatPrice(detail.price) }}</p>
+            <p class="history-detail__meta">剩余库存：{{ detail.stock }}</p>
+            <p v-if="detail.category_name" class="history-detail__meta">
+              类别：{{ detail.parent_category_name }} / {{ detail.category_name }}
+            </p>
+            <p class="history-detail__meta">发布时间：{{ detail.published_at }}</p>
+            <p class="history-detail__meta">图片数量：{{ detail.image_count }} 张</p>
+          </div>
         </div>
       </el-card>
 
-      <template v-else-if="detail">
-        <el-button link class="history-detail__back" @click="router.push({ name: 'seller-history' })">
-          ← 返回历史列表
-        </el-button>
-
-        <!-- 商品快照 -->
-        <el-card shadow="never">
-          <div class="product">
-            <div class="product__thumb">
-              <ProductImage :src="detail.image_url" :alt="detail.name" ratio="1 / 1" />
-            </div>
-
-            <div class="product__info">
-              <div class="product__head">
-                <h2 class="product__name">{{ detail.name }}</h2>
-                <StatusTag :status="detail.status" :label="detail.status_label" />
-              </div>
-
-              <p class="price product__price">{{ formatPrice(detail.price) }}</p>
-
-              <p class="product__meta">
-                发布时间：{{ detail.published_at }} · 下架时间：{{ detail.updated_at }}
-              </p>
-
-              <p v-if="detail.description" class="product__desc">{{ detail.description }}</p>
-            </div>
+      <el-card v-if="detail.transaction_summary" shadow="never" class="history-detail__card">
+        <template #header>交易汇总</template>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <p class="summary-item__value">{{ detail.transaction_summary.buyer_count }}</p>
+            <p class="summary-item__label">意向客户数</p>
           </div>
-        </el-card>
-
-        <!-- 交易概览 -->
-        <el-card shadow="never" class="block">
-          <template #header>
-            <span class="block__title">交易概览</span>
-          </template>
-
-          <div class="stats">
-            <div class="stats__item">
-              <p class="stats__value">{{ summary.failed_rounds ?? 0 }}</p>
-              <p class="stats__label">失败轮次</p>
-            </div>
-            <div class="stats__item">
-              <p class="stats__value">{{ summary.buyer_count ?? 0 }}</p>
-              <p class="stats__label">意向买家</p>
-            </div>
-            <div class="stats__item">
-              <p class="stats__value stats__value--text">
-                {{ summary.final_result_label || '未成交' }}
-              </p>
-              <p class="stats__label">最终结果</p>
-            </div>
+          <div class="summary-item">
+            <p class="summary-item__value">{{ detail.transaction_summary.failed_rounds }}</p>
+            <p class="summary-item__label">交易失败次数</p>
           </div>
-        </el-card>
+          <div class="summary-item">
+            <p class="summary-item__value">
+              {{ detail.transaction_summary.final_result_label }}
+            </p>
+            <p class="summary-item__label">最终结果</p>
+          </div>
+          <div class="summary-item">
+            <p class="summary-item__value">
+              {{ detail.transaction_summary.last_transaction_at || '—' }}
+            </p>
+            <p class="summary-item__label">最近交易时间</p>
+          </div>
+        </div>
+      </el-card>
 
-        <!-- 交易过程：完整保留每一轮 -->
-        <el-card shadow="never" class="block">
-          <template #header>
-            <span class="block__title">交易过程（共 {{ transactions.length }} 轮）</span>
-          </template>
+      <el-card shadow="never" class="history-detail__card">
+        <template #header>买家与意向记录</template>
+        <el-table :data="detail.buyers || []" border>
+          <el-table-column prop="queue_position" label="位次" width="70" />
+          <el-table-column label="客户" width="150">
+            <template #default="{ row }">{{ row.customer?.username || '—' }}</template>
+          </el-table-column>
+          <el-table-column label="电话" width="140">
+            <template #default="{ row }">{{ row.customer?.phone || '—' }}</template>
+          </el-table-column>
+          <el-table-column label="交易地点" min-width="160">
+            <template #default="{ row }">{{ row.customer?.trade_location || '—' }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="130">
+            <template #default="{ row }">
+              <StatusTag :status="row.status" :label="row.status_label" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="requeue_count" label="重排次数" width="100" />
+          <el-table-column prop="created_at" label="提交时间" width="180" />
+        </el-table>
+        <el-empty v-if="!(detail.buyers || []).length" description="没有意向记录" :image-size="70" />
+      </el-card>
 
-          <el-timeline v-if="transactions.length">
-            <el-timeline-item
-              v-for="(tx, index) in transactions"
-              :key="tx.id || index"
-              :timestamp="tx.created_at"
-              placement="top"
-              :type="tx.result === 'SUCCESS' ? 'success' : 'danger'"
-            >
-              <p class="tx__result" :class="tx.result === 'SUCCESS' ? 'tx--success' : 'tx--danger'">
-                {{ tx.result_label }}
-              </p>
-              <p v-if="tx.note" class="tx__note">备注：{{ tx.note }}</p>
-            </el-timeline-item>
-          </el-timeline>
-
-          <el-empty v-else description="该商品没有产生交易记录" :image-size="80" />
-        </el-card>
-
-        <!-- 意向购买人：每人带自己那次的交易结果 -->
-        <el-card shadow="never" class="block">
-          <template #header>
-            <span class="block__title">意向购买人（{{ detail.buyers?.length ?? 0 }} 人）</span>
-          </template>
-
-          <el-table :data="detail.buyers || []" border>
-            <el-table-column prop="buyer_name" label="姓名" width="140" />
-            <el-table-column prop="buyer_phone" label="联系电话" width="180" />
-            <el-table-column prop="created_at" label="提交时间" min-width="180" />
-            <el-table-column label="排队序号" width="110">
-              <template #default="{ row }">
-                {{ row.queue_position ?? '—' }}
-              </template>
-            </el-table-column>
-            <el-table-column label="交易结果" width="130">
-              <template #default="{ row }">
-                <StatusTag :status="row.status" :label="row.status_label" />
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <p class="block__note">
-            手机号在商品下架后统一脱敏展示（前 3 位 + **** + 后 4 位）。
-          </p>
-        </el-card>
-      </template>
+      <el-card shadow="never" class="history-detail__card">
+        <template #header>交易记录</template>
+        <el-table :data="detail.transactions || []" border>
+          <el-table-column prop="created_at" label="时间" width="190" />
+          <el-table-column label="结果" width="120">
+            <template #default="{ row }">
+              <el-tag :type="row.result === 'SUCCESS' ? 'success' : 'danger'" size="small">
+                {{ row.result_label }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="intent_id" label="意向 ID" min-width="240" />
+          <el-table-column prop="note" label="备注" min-width="180">
+            <template #default="{ row }">{{ row.note || '—' }}</template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-if="!(detail.transactions || []).length" description="没有交易记录" :image-size="70" />
+      </el-card>
     </template>
   </div>
 </template>
 
 <style scoped>
 .history-detail {
+  min-height: 240px;
+}
+
+.history-detail__head {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  min-height: 200px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.history-detail__back {
-  align-self: flex-start;
-}
-
-.product {
+.history-detail__product {
   display: flex;
-  gap: var(--sp-4);
+  gap: var(--sp-5);
 }
 
-.product__thumb {
-  width: 140px;
+.history-detail__gallery {
+  width: 280px;
   flex: none;
 }
 
-.product__head {
+.history-detail__thumbs {
   display: flex;
-  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  overflow-x: auto;
+}
+
+.history-detail__thumb {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  padding: 0;
+  overflow: hidden;
+  background: var(--c-muted-soft);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.history-detail__thumb--active {
+  border-color: var(--c-primary);
+}
+
+.history-detail__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.history-detail__info {
+  min-width: 0;
+}
+
+.history-detail__title-row {
+  display: flex;
+  align-items: flex-start;
   gap: var(--sp-3);
 }
 
-.product__name {
+.history-detail__name {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.history-detail__price {
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-xl);
+}
+
+.history-detail__meta {
+  margin: var(--sp-1) 0;
+  font-size: var(--fs-sm);
+  color: var(--c-text-sub);
+}
+
+.history-detail__card {
+  margin-top: var(--sp-4);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-4);
+}
+
+.summary-item__value {
   margin: 0;
   font-size: var(--fs-lg);
   font-weight: 600;
 }
 
-.product__price {
-  margin: var(--sp-2) 0 0;
-  font-size: 22px;
-}
-
-.product__meta {
+.summary-item__label {
   margin: var(--sp-1) 0 0;
   font-size: var(--fs-sm);
   color: var(--c-text-weak);
 }
 
-.product__desc {
-  margin: var(--sp-3) 0 0;
-  font-size: var(--fs-sm);
-  color: var(--c-text-sub);
-  white-space: pre-wrap;
-}
-
-.block {
-  margin: 0;
-}
-
-.block__title {
-  font-weight: 600;
-}
-
-.block__note {
-  margin: var(--sp-3) 0 0;
-  font-size: var(--fs-sm);
-  color: var(--c-text-weak);
-}
-
-.stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-8);
-}
-
-.stats__value {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--c-primary);
-}
-
-.stats__value--text {
-  font-size: 22px;
-}
-
-.stats__label {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-sm);
-  color: var(--c-text-weak);
-}
-
-.tx__result {
-  margin: 0;
-  font-weight: 600;
-}
-
-.tx--success {
-  color: var(--c-success);
-}
-
-.tx--danger {
-  color: var(--c-danger);
-}
-
-.tx__note {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-sm);
-  color: var(--c-text-sub);
-}
-
-@media (max-width: 767px) {
-  .product {
+@media (max-width: 900px) {
+  .history-detail__product {
     flex-direction: column;
   }
 
-  .product__thumb {
+  .history-detail__gallery {
     width: 100%;
-    max-width: 200px;
+    max-width: 320px;
   }
 }
 </style>
