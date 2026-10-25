@@ -1,22 +1,9 @@
 package com.shop.web;
 
-import com.shop.config.AppConfig;
-import com.shop.db.Db;
-import com.shop.dto.CategoryRequest;
-import com.shop.dto.ChangePasswordRequest;
-import com.shop.dto.ProductCreateRequest;
-import com.shop.dto.SellerLoginRequest;
-import com.shop.dto.StockUpdateRequest;
-import com.shop.dto.TransactionMarkRequest;
-import com.shop.db.Jdbc;
-import com.shop.serializers.Serializers;
-import com.shop.services.AuthService;
-import com.shop.services.CategoryService;
-import com.shop.services.CustomerService;
-import com.shop.services.IntentService;
-import com.shop.services.LogService;
-import com.shop.services.ProductService;
-import com.shop.services.TransactionService;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +18,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import com.shop.config.AppConfig;
+import com.shop.db.Db;
+import com.shop.db.Jdbc;
+import com.shop.dto.CategoryRequest;
+import com.shop.dto.ChangePasswordRequest;
+import com.shop.dto.ProductCreateRequest;
+import com.shop.dto.SellerLoginRequest;
+import com.shop.dto.StockUpdateRequest;
+import com.shop.dto.TransactionMarkRequest;
+import com.shop.serializers.Serializers;
+import com.shop.services.AuthService;
+import com.shop.services.CategoryService;
+import com.shop.services.CustomerService;
+import com.shop.services.IntentService;
+import com.shop.services.LogService;
+import com.shop.services.ProductService;
+import com.shop.services.TransactionService;
 
 /** 卖家接口：登录、类别、多商品与库存、队列交易、历史、客户台账、日志。 */
 @RestController
@@ -79,7 +80,7 @@ public class SellerController {
                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> seller = auth.requireSeller(authorization);
         String oldPassword = Validation.text(body.oldPassword, "body", "old_password", 1, 128, "旧密码");
-        String newPassword = Validation.text(body.newPassword, "body", "new_password", 8, 128, "新密码");
+        String newPassword = Validation.password(body.newPassword, "body", "new_password", "新密码");
         auth.changeSellerPassword(Jdbc.strOf(seller, "id"), oldPassword, newPassword);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("message", "密码修改成功");
