@@ -1,13 +1,13 @@
 package com.shop.web;
 
-import com.shop.errors.ValidationException;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import com.shop.errors.ValidationException;
 
 /**
  * 参数校验：错误结构对齐 FastAPI 的 422 响应。
@@ -43,6 +43,29 @@ public final class Validation {
             throw error(location, field, label + "长度不能超过 " + max + " 个字符");
         }
         return trimmed;
+    }
+
+    /** 密码校验：≥8 位且满足强度（大写/小写/数字/特殊字符至少 3 类）（C-29 / NFR-003）。 */
+    public static String password(String value, String location, String field, String label) {
+        String pwd = text(value, location, field, 8, 128, label);
+        int classes = 0;
+        if (pwd.matches(".*[A-Z].*")) {
+            classes++;
+        }
+        if (pwd.matches(".*[a-z].*")) {
+            classes++;
+        }
+        if (pwd.matches(".*[0-9].*")) {
+            classes++;
+        }
+        if (pwd.matches(".*[^A-Za-z0-9].*")) {
+            classes++;
+        }
+        if (classes < 3) {
+            throw error(location, field,
+                    label + "强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位");
+        }
+        return pwd;
     }
 
     public static void optionalLength(String value, String location, String field, int max, String label) {
