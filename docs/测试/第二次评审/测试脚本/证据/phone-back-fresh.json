@@ -1,0 +1,125 @@
+{
+  "run_at": "2026-10-28 20:42:35",
+  "results": [
+    {
+      "id": "TC-Q01",
+      "input": "13800000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"5fe1f033cf6f4935983945e89c5da808\",\"username\":\"tcq01_ph91354\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:34\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q02",
+      "input": "19900000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"bfd9e95116654ebc94d203a8802c4163\",\"username\":\"tcq02_ph91354\",\"phone\":\"19900000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:34\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q03",
+      "input": "  13800000000  ",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"e511e6d9c40a450d8c3c7c0210b49cfc\",\"username\":\"tcq03_ph91354\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:34\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q04",
+      "input": "23800000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"39435e2cab864873ac46f15e5460052e\",\"username\":\"tcq04_ph91354\",\"phone\":\"23800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q05",
+      "input": "12800000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"5b8f9d5516c446e79a957cd142370708\",\"username\":\"tcq05_ph91354\",\"phone\":\"12800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q06",
+      "input": "10800000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"e3cb9113ad6149deb585ced310429222\",\"username\":\"tcq06_ph91354\",\"phone\":\"10800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q07",
+      "input": "1380000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"98208b569d50406fa6d3e4450db4cda1\",\"username\":\"tcq07_ph91354\",\"phone\":\"1380000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q08",
+      "input": "138000000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"37f288cc8c5e4a20b22098855dc746ed\",\"username\":\"tcq08_ph91354\",\"phone\":\"138000000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q09",
+      "input": "12345",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"d7fefff75a994f46b26ec95f6b3ae7f4\",\"username\":\"tcq09_ph91354\",\"phone\":\"12345\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q10",
+      "input": "+8613800000000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"21746d7f53944c67ad4c09f8e8c8c056\",\"username\":\"tcq10_ph91354\",\"phone\":\"+8613800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q11",
+      "input": "138-0000-0000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"158a981ea75b4af39d1689f8aeb265ea\",\"username\":\"tcq11_ph91354\",\"phone\":\"138-0000-0000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q12",
+      "input": "138 0000 0000",
+      "want": 200,
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"2bd72a450e9c4ecca476cc7f967df440\",\"username\":\"tcq12_ph91354\",\"phone\":\"138 0000 0000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:42:35\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q13",
+      "input": "13800000001a",
+      "want": 422,
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q14",
+      "input": "",
+      "want": 422,
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}",
+      "result": "PASS"
+    },
+    {
+      "id": "TC-Q15",
+      "input": "   ",
+      "want": 422,
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}",
+      "result": "PASS"
+    }
+  ]
+}

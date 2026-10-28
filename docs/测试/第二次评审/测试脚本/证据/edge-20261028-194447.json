@@ -1,0 +1,608 @@
+{
+  "base": "http://127.0.0.1:8000",
+  "run_at": "2026-10-28 19:44:47",
+  "total": 18,
+  "passed": 17,
+  "failed": 1,
+  "results": [
+    {
+      "id": "H01",
+      "module": "价格边界",
+      "title": "价格 0 应被拒",
+      "time": "2026-10-28 19:44:46.973",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "价格H01_e87886",
+          "price": 0,
+          "description": "x",
+          "stock": 1,
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "image_urls": []
+        }
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "价格必须大于 0",
+          "details": [
+            {
+              "loc": [
+                "body",
+                "price"
+              ],
+              "msg": "价格必须大于 0",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格必须大于 0\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格必须大于 0\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "H02",
+      "module": "价格边界",
+      "title": "价格 0.001 元（不足 1 分）应被拒而非 500",
+      "time": "2026-10-28 19:44:46.989",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "价格H02_e87886",
+          "price": 0.001,
+          "description": "x",
+          "stock": 1,
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "image_urls": []
+        }
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "价格最多保留两位小数",
+          "details": [
+            {
+              "loc": [
+                "body",
+                "price"
+              ],
+              "msg": "价格最多保留两位小数",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格最多保留两位小数\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格最多保留两位小数\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "H03",
+      "module": "价格边界",
+      "title": "负数价格应被拒",
+      "time": "2026-10-28 19:44:47.005",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "价格H03_e87886",
+          "price": -5,
+          "description": "x",
+          "stock": 1,
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "image_urls": []
+        }
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "价格必须大于 0",
+          "details": [
+            {
+              "loc": [
+                "body",
+                "price"
+              ],
+              "msg": "价格必须大于 0",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格必须大于 0\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格必须大于 0\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "H04",
+      "module": "价格边界",
+      "title": "价格超上限应被拒",
+      "time": "2026-10-28 19:44:47.011",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "价格H04_e87886",
+          "price": 9999999.01,
+          "description": "x",
+          "stock": 1,
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "image_urls": []
+        }
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "价格不能超过 9999999",
+          "details": [
+            {
+              "loc": [
+                "body",
+                "price"
+              ],
+              "msg": "价格不能超过 9999999",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格不能超过 9999999\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格不能超过 9999999\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "H05",
+      "module": "价格边界",
+      "title": "价格三位小数应被拒",
+      "time": "2026-10-28 19:44:47.026",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "价格H05_e87886",
+          "price": 1.999,
+          "description": "x",
+          "stock": 1,
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "image_urls": []
+        }
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "价格最多保留两位小数",
+          "details": [
+            {
+              "loc": [
+                "body",
+                "price"
+              ],
+              "msg": "价格最多保留两位小数",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格最多保留两位小数\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格最多保留两位小数\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "I01",
+      "module": "意向冲突",
+      "title": "同一客户对同一商品重复提交应被拒（FR-021）",
+      "time": "2026-10-28 19:44:47.031",
+      "request": {
+        "method": "POST",
+        "path": "/api/customer/intents",
+        "body": {
+          "product_id": "908b88f966dc4bb0a29fbc169b290074"
+        }
+      },
+      "expected": "HTTP 409（同商品仅一个有效意向）",
+      "http_status": 200,
+      "actual": "HTTP 200",
+      "response": {
+        "intent": {
+          "id": "d89329ae091f40b0ad76c6d044670998",
+          "product_id": "908b88f966dc4bb0a29fbc169b290074",
+          "customer_id": "1c90ae2293824a5285a4de976716904c",
+          "status": "QUEUED",
+          "status_label": "排队中",
+          "queue_position": 1,
+          "requeue_count": 0,
+          "created_at": "2026-10-28 19:44:47",
+          "updated_at": "2026-10-28 19:44:47"
+        },
+        "product": {
+          "id": "908b88f966dc4bb0a29fbc169b290074",
+          "name": "边界商品_e87886",
+          "description": "x",
+          "price": 100.0,
+          "price_cents": 10000,
+          "stock": 5,
+          "status": "ON_SALE",
+          "status_label": "在售",
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "category_name": "边界小类e87886",
+          "parent_category_id": "488b4fbe06c947ef81d9acdc2ad18bd7",
+          "parent_category_name": "边界大类e87886",
+          "published_at": "2026-10-28 19:44:46",
+          "created_at": "2026-10-28 19:44:46",
+          "updated_at": "2026-10-28 19:44:46",
+          "images": [],
+          "primary_image": null,
+          "image_count": 0
+        },
+        "queue_position": 1,
+        "message": "已进入该商品队列，请耐心等待卖家处理"
+      },
+      "result": "FAIL",
+      "raw_response": "{\"intent\":{\"id\":\"d89329ae091f40b0ad76c6d044670998\",\"product_id\":\"908b88f966dc4bb0a29fbc169b290074\",\"customer_id\":\"1c90ae2293824a5285a4de976716904c\",\"status\":\"QUEUED\",\"status_label\":\"排队中\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 19:44:47\",\"updated_at\":\"2026-10-28 19:44:47\"},\"product\":{\"id\":\"908b88f966dc4bb0a29fbc169b290074\",\"name\":\"边界商品_e87886\",\"description\":\"x\",\"price\":100.0,\"price_cents\":10000,\"stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"1c5a395d04d74660a6a54a5a8ae7c99d\",\"category_name\":\"边界小类e87886\",\"parent_category_id\":\"488b4fbe06c947ef81d9acdc2ad18bd7\",\"parent_category_name\":\"边界大类e87886\",\"published_at\":\"2026-10-28 19:44:46\",\"created_at\":\"2026-10-28 19:44:46\",\"updated_at\":\"2026-10-28 19:44:46\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"queue_position\":1,\"message\":\"已进入该商品队列，请耐心等待卖家处理\"}"
+    },
+    {
+      "id": "I02",
+      "module": "意向冲突",
+      "title": "重复提交第二次仍应被拒",
+      "time": "2026-10-28 19:44:47.055",
+      "request": {
+        "method": "POST",
+        "path": "/api/customer/intents",
+        "body": {
+          "product_id": "908b88f966dc4bb0a29fbc169b290074"
+        }
+      },
+      "expected": "HTTP 409",
+      "http_status": 409,
+      "actual": "HTTP 409",
+      "response": {
+        "error": {
+          "code": "CONFLICT",
+          "message": "您已在该商品的队列中，请勿重复提交"
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"您已在该商品的队列中，请勿重复提交\"}}"
+    },
+    {
+      "id": "I03",
+      "module": "越权",
+      "title": "客户不能查看不属于自己的意向",
+      "time": "2026-10-28 19:44:47.113",
+      "request": {
+        "method": "GET",
+        "path": "/api/customer/intents/d89329ae091f40b0ad76c6d044670998",
+        "body": null
+      },
+      "expected": "HTTP 404（他人意向不可见）",
+      "http_status": 404,
+      "actual": "HTTP 404",
+      "response": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "意向不存在"
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"意向不存在\"}}"
+    },
+    {
+      "id": "J01",
+      "module": "售罄",
+      "title": "库存为 0 的商品发布后应不可购买（状态非在售）",
+      "time": "2026-10-28 19:44:47.156",
+      "request": {
+        "method": "GET",
+        "path": "/api/products/8248dff72b6f447186523e701646161e",
+        "body": null
+      },
+      "expected": "商品不可下单（SOLD_OUT 或不可见）",
+      "http_status": 200,
+      "actual": "HTTP 200 status=SOLD_OUT",
+      "response": {
+        "product": {
+          "id": "8248dff72b6f447186523e701646161e",
+          "name": "零库存_e87886",
+          "description": "x",
+          "price": 100.0,
+          "price_cents": 10000,
+          "stock": 0,
+          "status": "SOLD_OUT",
+          "status_label": "售罄下架",
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "category_name": "边界小类e87886",
+          "parent_category_id": "488b4fbe06c947ef81d9acdc2ad18bd7",
+          "parent_category_name": "边界大类e87886",
+          "published_at": "2026-10-28 19:44:47",
+          "created_at": "2026-10-28 19:44:47",
+          "updated_at": "2026-10-28 19:44:47",
+          "images": [],
+          "primary_image": null,
+          "image_count": 0
+        },
+        "queue_count": 0,
+        "can_buy": false
+      },
+      "result": "PASS",
+      "raw_response": "{\"product\":{\"id\":\"8248dff72b6f447186523e701646161e\",\"name\":\"零库存_e87886\",\"description\":\"x\",\"price\":100.0,\"price_cents\":10000,\"stock\":0,\"status\":\"SOLD_OUT\",\"status_label\":\"售罄下架\",\"category_id\":\"1c5a395d04d74660a6a54a5a8ae7c99d\",\"category_name\":\"边界小类e87886\",\"parent_category_id\":\"488b4fbe06c947ef81d9acdc2ad18bd7\",\"parent_category_name\":\"边界大类e87886\",\"published_at\":\"2026-10-28 19:44:47\",\"created_at\":\"2026-10-28 19:44:47\",\"updated_at\":\"2026-10-28 19:44:47\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"queue_count\":0,\"can_buy\":false}"
+    },
+    {
+      "id": "J02",
+      "module": "售罄",
+      "title": "对库存 0 的商品提交意向应被拒",
+      "time": "2026-10-28 19:44:47.171",
+      "request": {
+        "method": "POST",
+        "path": "/api/customer/intents",
+        "body": {
+          "product_id": "8248dff72b6f447186523e701646161e"
+        }
+      },
+      "expected": "HTTP 409/422",
+      "http_status": 409,
+      "actual": "HTTP 409",
+      "response": {
+        "error": {
+          "code": "CONFLICT",
+          "message": "商品已售罄，暂不能提交意向"
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"商品已售罄，暂不能提交意向\"}}"
+    },
+    {
+      "id": "K01",
+      "module": "卖家改密",
+      "title": "卖家把密码改成弱密码应被拒",
+      "time": "2026-10-28 19:44:47.190",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/password",
+        "body": {
+          "old_password": "seller123",
+          "new_password": "pass1234"
+        }
+      },
+      "expected": "HTTP 422（强度不足）",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "新密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位",
+          "details": [
+            {
+              "loc": [
+                "body",
+                "new_password"
+              ],
+              "msg": "新密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"新密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"新密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "K02",
+      "module": "卖家改密",
+      "title": "卖家新密码与旧密码相同应被拒或允许（记录行为）",
+      "time": "2026-10-28 19:44:47.198",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/password",
+        "body": {
+          "old_password": "seller123",
+          "new_password": "Seller123!"
+        }
+      },
+      "expected": "HTTP 200（强密码应通过）",
+      "http_status": 200,
+      "actual": "HTTP 200",
+      "response": {
+        "message": "密码修改成功"
+      },
+      "result": "PASS",
+      "raw_response": "{\"message\":\"密码修改成功\"}"
+    },
+    {
+      "id": "K03",
+      "module": "卖家改密",
+      "title": "旧密码错误应被拒",
+      "time": "2026-10-28 19:44:47.301",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/password",
+        "body": {
+          "old_password": "wrong-old",
+          "new_password": "Seller123!"
+        }
+      },
+      "expected": "HTTP 401",
+      "http_status": 401,
+      "actual": "HTTP 401",
+      "response": {
+        "error": {
+          "code": "UNAUTHORIZED",
+          "message": "旧密码不正确"
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"旧密码不正确\"}}"
+    },
+    {
+      "id": "L01",
+      "module": "冻结",
+      "title": "卖家手动冻结商品",
+      "time": "2026-10-28 19:44:47.493",
+      "request": {
+        "method": "POST",
+        "path": "/api/seller/products/d4b4036f6f8447eaa6085da81f7fd527/freeze",
+        "body": {}
+      },
+      "expected": "HTTP 200，状态 FROZEN",
+      "http_status": 200,
+      "actual": "status=FROZEN",
+      "response": {
+        "product": {
+          "id": "d4b4036f6f8447eaa6085da81f7fd527",
+          "name": "冻结商品_e87886",
+          "description": "x",
+          "price": 100.0,
+          "price_cents": 10000,
+          "stock": 5,
+          "status": "FROZEN",
+          "status_label": "冻结",
+          "category_id": "1c5a395d04d74660a6a54a5a8ae7c99d",
+          "category_name": "边界小类e87886",
+          "parent_category_id": "488b4fbe06c947ef81d9acdc2ad18bd7",
+          "parent_category_name": "边界大类e87886",
+          "published_at": "2026-10-28 19:44:47",
+          "created_at": "2026-10-28 19:44:47",
+          "updated_at": "2026-10-28 19:44:47",
+          "images": [],
+          "primary_image": null,
+          "image_count": 0
+        },
+        "message": "商品已冻结，不再接收新意向"
+      },
+      "result": "PASS",
+      "raw_response": "{\"product\":{\"id\":\"d4b4036f6f8447eaa6085da81f7fd527\",\"name\":\"冻结商品_e87886\",\"description\":\"x\",\"price\":100.0,\"price_cents\":10000,\"stock\":5,\"status\":\"FROZEN\",\"status_label\":\"冻结\",\"category_id\":\"1c5a395d04d74660a6a54a5a8ae7c99d\",\"category_name\":\"边界小类e87886\",\"parent_category_id\":\"488b4fbe06c947ef81d9acdc2ad18bd7\",\"parent_category_name\":\"边界大类e87886\",\"published_at\":\"2026-10-28 19:44:47\",\"created_at\":\"2026-10-28 19:44:47\",\"updated_at\":\"2026-10-28 19:44:47\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"商品已冻结，不再接收新意向\"}"
+    },
+    {
+      "id": "L02",
+      "module": "冻结",
+      "title": "冻结期间提交意向应被拒",
+      "time": "2026-10-28 19:44:47.517",
+      "request": {
+        "method": "POST",
+        "path": "/api/customer/intents",
+        "body": {
+          "product_id": "d4b4036f6f8447eaa6085da81f7fd527"
+        }
+      },
+      "expected": "HTTP 409/422",
+      "http_status": 409,
+      "actual": "HTTP 409",
+      "response": {
+        "error": {
+          "code": "CONFLICT",
+          "message": "商品交易中，暂停接收新意向"
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"商品交易中，暂停接收新意向\"}}"
+    },
+    {
+      "id": "M01",
+      "module": "分页",
+      "title": "page=0 应被拒",
+      "time": "2026-10-28 19:44:47.527",
+      "request": {
+        "method": "GET",
+        "path": "/api/products?page=0",
+        "body": null
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "page 必须大于等于 1",
+          "details": [
+            {
+              "loc": [
+                "query",
+                "page"
+              ],
+              "msg": "page 必须大于等于 1",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page 必须大于等于 1\",\"details\":[{\"loc\":[\"query\",\"page\"],\"msg\":\"page 必须大于等于 1\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "M02",
+      "module": "分页",
+      "title": "page_size=101 应被拒",
+      "time": "2026-10-28 19:44:47.540",
+      "request": {
+        "method": "GET",
+        "path": "/api/products?page_size=101",
+        "body": null
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "page_size 必须在 1 到 100 之间",
+          "details": [
+            {
+              "loc": [
+                "query",
+                "page_size"
+              ],
+              "msg": "page_size 必须在 1 到 100 之间",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page_size 必须在 1 到 100 之间\",\"details\":[{\"loc\":[\"query\",\"page_size\"],\"msg\":\"page_size 必须在 1 到 100 之间\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "M03",
+      "module": "分页",
+      "title": "page=abc 应被拒",
+      "time": "2026-10-28 19:44:47.552",
+      "request": {
+        "method": "GET",
+        "path": "/api/products?page=abc",
+        "body": null
+      },
+      "expected": "HTTP 422",
+      "http_status": 422,
+      "actual": "HTTP 422",
+      "response": {
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "page 必须为整数",
+          "details": [
+            {
+              "loc": [
+                "query",
+                "page"
+              ],
+              "msg": "page 必须为整数",
+              "type": "value_error"
+            }
+          ]
+        }
+      },
+      "result": "PASS",
+      "raw_response": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page 必须为整数\",\"details\":[{\"loc\":[\"query\",\"page\"],\"msg\":\"page 必须为整数\",\"type\":\"value_error\"}]}}"
+    }
+  ]
+}
