@@ -1,0 +1,13 @@
+# Docker相关（本地保留，不上传到github）
+docker-compose.yml
+data/
+backend/Dockerfile
+frontend/Dockerfile
+
+# Java编译输出
+backend-java/target/
+
+# 前端依赖包
+frontend/node_modules/
+# 前端打包产物
+frontend/dist/
