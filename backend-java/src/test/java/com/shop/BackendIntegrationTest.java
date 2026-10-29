@@ -529,10 +529,11 @@ class BackendIntegrationTest {
     /**
      * 读取某商品当前"正在交易中"队列的首位意向 id。
      * 相当于"现在轮到谁了"。
+     * 重复了，删掉
      */
-    private String queueHead(String productId, String sellerToken) {
+    /*private String queueHead(String productId, String sellerToken) {
         // 按 status=IN_TRANSACTION 过滤出正在交易的意向，取第 0 条（队首）的 id
         JsonNode queue = get("/api/seller/products/" + productId + "/intents?status=IN_TRANSACTION", sellerToken);
         return queue.path("items").get(0).path("id").asText();
-    }
+    }*/
 }
