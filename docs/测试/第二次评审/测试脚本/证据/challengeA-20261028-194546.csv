@@ -1,0 +1,40 @@
+﻿用例编号,模块,用例标题,请求时间,方法,路径,请求体,预期,HTTP,实际,结论
+A01,密码强度,7 位 4 类：长度不足,2026-10-28 19:45:45.620,POST,/api/customer/register,"{""username"": ""pw_a01_87945"", ""password"": ""Ab1!xyz"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A02,密码强度,8 位 4 类：刚好边界应通过,2026-10-28 19:45:45.629,POST,/api/customer/register,"{""username"": ""pw_a02_87945"", ""password"": ""Ab1!xyz9"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 200,200,HTTP 200,PASS
+A03,密码强度,8 位 3 类（大小写+数字）,2026-10-28 19:45:45.700,POST,/api/customer/register,"{""username"": ""pw_a03_87945"", ""password"": ""Abcd1234"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 200,200,HTTP 200,PASS
+A04,密码强度,8 位 3 类（大写+小写+特殊）,2026-10-28 19:45:45.762,POST,/api/customer/register,"{""username"": ""pw_a04_87945"", ""password"": ""Abcd!@#$"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 200,200,HTTP 200,PASS
+A05,密码强度,8 位 2 类（数字+特殊）：强度不足,2026-10-28 19:45:45.826,POST,/api/customer/register,"{""username"": ""pw_a05_87945"", ""password"": ""1234!@#$"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A06,密码强度,8 位 2 类（小写+数字）：强度不足,2026-10-28 19:45:45.830,POST,/api/customer/register,"{""username"": ""pw_a06_87945"", ""password"": ""abcd1234"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A07,密码强度,8 位 1 类（纯数字）：强度不足,2026-10-28 19:45:45.832,POST,/api/customer/register,"{""username"": ""pw_a07_87945"", ""password"": ""12345678"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A08,密码强度,8 位 1 类（纯小写）：强度不足,2026-10-28 19:45:45.846,POST,/api/customer/register,"{""username"": ""pw_a08_87945"", ""password"": ""abcdefgh"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A09,密码强度,8 位 1 类（纯特殊）：强度不足,2026-10-28 19:45:45.849,POST,/api/customer/register,"{""username"": ""pw_a09_87945"", ""password"": ""!!!!!!!!"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A10,密码强度,8 位 4 类：应通过,2026-10-28 19:45:45.861,POST,/api/customer/register,"{""username"": ""pw_a10_87945"", ""password"": ""Aa1!Aa1!"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 200,200,HTTP 200,PASS
+A11,密码强度,空密码：应拒绝,2026-10-28 19:45:45.924,POST,/api/customer/register,"{""username"": ""pw_a11_87945"", ""password"": """", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+A12,密码强度,129 位：超上限应拒绝,2026-10-28 19:45:45.938,POST,/api/customer/register,"{""username"": ""pw_a12_87945"", ""password"": ""Aa1!Aa1!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"", ""phone"": ""13800000000"", ""trade_location"": ""测试地点""}",HTTP 422,422,HTTP 422,PASS
+B01,客户账号,客户注册成功,2026-10-28 19:45:45.950,POST,/api/customer/register,"{""username"": ""cust_87945"", ""password"": ""Pass1234!"", ""phone"": ""13800000001"", ""trade_location"": ""图书馆门口""}",HTTP 200,200,HTTP 200,PASS
+B02,客户账号,重复用户名注册被拒,2026-10-28 19:45:46.003,POST,/api/customer/register,"{""username"": ""cust_87945"", ""password"": ""Pass1234!"", ""phone"": ""13800000002"", ""trade_location"": ""食堂""}",HTTP 409,409,HTTP 409,PASS
+B03,客户账号,电话格式非法注册被拒,2026-10-28 19:45:46.020,POST,/api/customer/register,"{""username"": ""badphone_87945"", ""password"": ""Pass1234!"", ""phone"": ""abc"", ""trade_location"": ""食堂""}",HTTP 422,422,HTTP 422,PASS
+B04,客户账号,客户登录成功,2026-10-28 19:45:46.034,POST,/api/customer/login,"{""username"": ""cust_87945"", ""password"": ""Pass1234!""}",HTTP 200,200,HTTP 200,PASS
+B05,客户账号,错误密码登录被拒,2026-10-28 19:45:46.077,POST,/api/customer/login,"{""username"": ""cust_87945"", ""password"": ""WrongPass1!""}",HTTP 401,401,HTTP 401,PASS
+B06,访问控制,游客可匿名浏览商品列表,2026-10-28 19:45:46.132,GET,/api/products,null,HTTP 200,200,HTTP 200 共 0 件,PASS
+B07,访问控制,未登录提交购买意向被拒（下单强制登录）,2026-10-28 19:45:46.177,POST,/api/customer/intents,"{""product_id"": ""cdacc656656d4688ac708e941de83e5f""}",HTTP 401,401,HTTP 401,PASS
+B08,访问控制,客户登出成功,2026-10-28 19:45:46.190,POST,/api/customer/logout,{},HTTP 200,200,HTTP 200,PASS
+C01,多商品,发布商品 A 成功（库存 1）,2026-10-28 19:45:46.207,POST,/api/seller/products,"{""name"": ""商品A2_87945"", ""price"": 100.0, ""description"": ""测试"", ""stock"": 1, ""category_id"": ""89c2b53e4263485188e2d6f6a3e365d6"", ""image_urls"": []}",HTTP 200,200,HTTP 200,PASS
+C02,多商品,再发布商品 B 成功（不再限制唯一在售）,2026-10-28 19:45:46.231,POST,/api/seller/products,"{""name"": ""商品B_87945"", ""price"": 200.0, ""description"": ""测试"", ""stock"": 3, ""category_id"": ""89c2b53e4263485188e2d6f6a3e365d6"", ""image_urls"": []}",HTTP 200,200,HTTP 200,PASS
+C03,多商品,公开列表同时包含多件在售商品,2026-10-28 19:45:46.253,GET,/api/products,null,total >= 2,200,total=3,PASS
+D01,库存,库存为负数发布被拒,2026-10-28 19:45:46.271,POST,/api/seller/products,"{""name"": ""负库存_87945"", ""price"": 10.0, ""description"": ""x"", ""stock"": -1, ""category_id"": ""89c2b53e4263485188e2d6f6a3e365d6"", ""image_urls"": []}",HTTP 422,422,HTTP 422,PASS
+D02,库存,库存缺失发布被拒,2026-10-28 19:45:46.278,POST,/api/seller/products,"{""name"": ""无库存_87945"", ""price"": 10.0, ""description"": ""x"", ""category_id"": ""89c2b53e4263485188e2d6f6a3e365d6"", ""image_urls"": []}",HTTP 422,422,HTTP 422,PASS
+D03,库存,把在售商品库存调为 0 → 应自动下架（售罄）,2026-10-28 19:45:46.294,PATCH,/api/seller/products/0a1e2951180348de8a94f79ad3b0b83f/stock,"{""stock"": 0}",商品状态变为 SOLD_OUT,200,status=SOLD_OUT,PASS
+D04,库存,补货后商品恢复在售,2026-10-28 19:45:46.322,PATCH,/api/seller/products/0a1e2951180348de8a94f79ad3b0b83f/stock,"{""stock"": 5}",商品状态恢复 ON_SALE,200,status=ON_SALE,PASS
+D05,库存,把库存调成负数被拒,2026-10-28 19:45:46.338,PATCH,/api/seller/products/0a1e2951180348de8a94f79ad3b0b83f/stock,"{""stock"": -3}",HTTP 422,422,HTTP 422,PASS
+E01,类别,发布商品不挂类别被拒,2026-10-28 19:45:46.345,POST,/api/seller/products,"{""name"": ""无类别_87945"", ""price"": 10.0, ""description"": ""x"", ""stock"": 1, ""image_urls"": []}",HTTP 422,422,HTTP 422,PASS
+E02,类别,商品挂一级类别被拒（必须挂二级）,2026-10-28 19:45:46.360,POST,/api/seller/products,"{""name"": ""挂大类_87945"", ""price"": 10.0, ""description"": ""x"", ""stock"": 1, ""category_id"": ""4b91e93a5b3a4cbaa5e043007c10ee93"", ""image_urls"": []}",HTTP 422,422,HTTP 422,PASS
+E03,类别,删除仍有商品的类别被拒,2026-10-28 19:45:46.370,DELETE,/api/seller/categories/89c2b53e4263485188e2d6f6a3e365d6,null,HTTP 409,409,HTTP 409,PASS
+F01,队列,客户1 提交意向 → 队列位 1,2026-10-28 19:45:46.634,POST,/api/customer/intents,"{""product_id"": ""3147e19d3c5d41cdbbf2a4c51df514d1""}","QUEUED, queue_position=1",200,pos=1,PASS
+F02,队列,客户2 提交意向 → 队列位 2（先到先得）,2026-10-28 19:45:46.658,POST,/api/customer/intents,"{""product_id"": ""3147e19d3c5d41cdbbf2a4c51df514d1""}","QUEUED, queue_position=2",200,pos=2,PASS
+F03,队列,另一个商品有独立队列（客户1 在商品A 队列位 1）,2026-10-28 19:45:46.680,POST,/api/customer/intents,"{""product_id"": ""cdacc656656d4688ac708e941de83e5f""}","QUEUED, queue_position=1（与商品F 互不影响）",200,pos=1,PASS
+F04,交易,卖家对商品F 进入交易 → 队首进入,2026-10-28 19:45:46.705,POST,/api/seller/products/3147e19d3c5d41cdbbf2a4c51df514d1/start-transaction,{},HTTP 200，队首转 IN_TRANSACTION，商品冻结,200,HTTP 200 status=FROZEN,PASS
+F05,交易,标记交易失败并作废（单动作）,2026-10-28 19:45:46.754,POST,/api/seller/intents/6d6aa8bed6cd402db5247f7ee65deb44/transaction,"{""result"": ""FAILED"", ""failed_action"": ""VOID"", ""note"": ""测试作废""}",HTTP 200，失败者 VOIDED,200,HTTP 200,PASS
+F06,交易,作废后队列下一位成为队首,2026-10-28 19:45:46.779,GET,/api/seller/products/3147e19d3c5d41cdbbf2a4c51df514d1/intents?status=QUEUED,null,剩余队列中存在客户2,200,排队中 1 人,PASS
+G01,售罄,库存 1 成交 → 库存归零且商品售罄下架,2026-10-28 19:45:46.880,POST,/api/seller/intents/101023d6ccbf4d758fe9c016b4f6fc35/transaction,"{""result"": ""SUCCESS""}",商品状态 SOLD_OUT、库存 0,200,status=SOLD_OUT stock=0,PASS
+G02,售罄,库存归零后其余排队意向被自动作废（SOLD_OUT）,2026-10-28 19:45:46.907,GET,/api/seller/products/340267e5d97545daa1f03d2577b1cc15/intents,null,剩余意向状态为 SOLD_OUT,200,"状态集合=['SOLD_OUT', 'SUCCESS']",PASS

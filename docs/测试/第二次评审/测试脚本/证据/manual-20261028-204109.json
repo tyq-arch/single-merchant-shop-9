@@ -1,0 +1,283 @@
+{
+  "base": "http://127.0.0.1:8000",
+  "run_at": "2026-10-28 20:41:09",
+  "total": 25,
+  "passed": 25,
+  "results": [
+    {
+      "id": "M-A1",
+      "module": "密码强度",
+      "content": "注册密码=pass1234（弱密码，应被拒）",
+      "process": "在注册页填 用户名/电话/地点/密码=pass1234，点注册",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位\",\"details\":[{\"loc\":[\"body\",\"password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:08.911"
+    },
+    {
+      "id": "M-A2",
+      "module": "密码强度",
+      "content": "注册密码=Pass1234!（强密码，应成功）",
+      "process": "在注册页填 用户名/电话/地点/密码=Pass1234!，点注册",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"54b43ec953ef4bec95f918e3a82c6c9d\",\"username\":\"ma2_m91268\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:41:08\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:08.962"
+    },
+    {
+      "id": "M-A3",
+      "module": "密码强度",
+      "content": "注册密码=Ab1!xyz（7 位，应被拒）",
+      "process": "在注册页填 用户名/电话/地点/密码=Ab1!xyz，点注册",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码长度不能少于 8 个字符\",\"details\":[{\"loc\":[\"body\",\"password\"],\"msg\":\"密码长度不能少于 8 个字符\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:08.975"
+    },
+    {
+      "id": "M-A4",
+      "module": "密码强度",
+      "content": "注册密码=Abcd1234（8 位 3 类，应成功）",
+      "process": "在注册页填 用户名/电话/地点/密码=Abcd1234，点注册",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"39d432a8072f4046898785d458c935d1\",\"username\":\"ma4_m91268\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:41:08\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.037"
+    },
+    {
+      "id": "M-A5",
+      "module": "密码强度",
+      "content": "注册密码=Ab1!ab（6 位 4 类：前端放行、后端应拒）",
+      "process": "在注册页填 用户名/电话/地点/密码=Ab1!ab，点注册",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码长度不能少于 8 个字符\",\"details\":[{\"loc\":[\"body\",\"password\"],\"msg\":\"密码长度不能少于 8 个字符\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.050"
+    },
+    {
+      "id": "M-A6",
+      "module": "密码强度",
+      "content": "注册密码=abcdefgh（8 位 1 类：前端放行、后端应拒）",
+      "process": "在注册页填 用户名/电话/地点/密码=abcdefgh，点注册",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位\",\"details\":[{\"loc\":[\"body\",\"password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.063"
+    },
+    {
+      "id": "M-B1",
+      "module": "客户账号",
+      "content": "用注册账号登录",
+      "process": "登录页填 ma2_xxx / Pass1234!，点登录",
+      "expected": "HTTP 200 且返回 token",
+      "status": 200,
+      "raw": "{\"token\":\"Y3VzdG9tZXIuNTRiNDNlYzk1M2VmNGJlYzk1ZjkxOGUzYTgyYzZjOWQuMTc5MzIzNDQ2OS41OGRhZDIxZDY4MGZhYmIwN2I1ZDM1ODkzNjhiMzY1NWQzMGNlODg4NTVlNGU1ZWJjMzgxMTQzMzdhYzhjNDhm\",\"token_type\":\"Bearer\",\"expires_at\":1793234469,\"customer\":{\"id\":\"54b43ec953ef4bec95f918e3a82c6c9d\",\"username\":\"ma2_m91268\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:41:08\"}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.114"
+    },
+    {
+      "id": "M-B2",
+      "module": "客户账号",
+      "content": "个人资料显示正确",
+      "process": "打开 /my/profile，调用 GET /api/customer/me",
+      "expected": "HTTP 200 且含 username/phone/trade_location",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"54b43ec953ef4bec95f918e3a82c6c9d\",\"username\":\"ma2_m91268\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-10-28 20:41:08\"},\"purchase_count\":0}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.133"
+    },
+    {
+      "id": "M-B3",
+      "module": "访问控制",
+      "content": "未登录点我要购买被拒",
+      "process": "退出登录后点「我要购买」，调用 POST /api/customer/intents（不带 token）",
+      "expected": "HTTP 401",
+      "status": 401,
+      "raw": "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"未登录或凭证缺失\"}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.146"
+    },
+    {
+      "id": "M-C2",
+      "module": "多商品",
+      "content": "卖家商品列表有多件在售",
+      "process": "打开 /seller/products，调用 GET /api/seller/products",
+      "expected": "total >= 2",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"00c84e5761214f7c8a3a5879f43e8bcb\",\"name\":\"手动测试商品B\",\"description\":\"手动测试用商品\",\"price\":199.0,\"price_cents\":19900,\"stock\":1,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:29:52\",\"created_at\":\"2026-10-28 20:29:52\",\"updated_at\":\"2026-10-28 20:29:52\",\"images\":[],\"primary_image\":null,\"image_count\":0},{\"id\":\"2d07d0b200994179a43ab0e304373509\",\"name\":\"手动测试商品A\",\"description\":\"手动测试用商品\",\"price\":88.0,\"price_cents\":8800,\"stock\":3,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:29:52\",\"created_at\":\"2026-10-28 20:29:52\",\"updated_at\":\"2026-10-28 20:29:52\",\"images\":[],\"primary_image\":null,\"image_count\":0}],\"total\":2,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.210"
+    },
+    {
+      "id": "M-C3",
+      "module": "多商品",
+      "content": "已有在售商品时再发布一件仍成功",
+      "process": "打开 /seller/publish，填名称/价格/库存/二级类别，点发布",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"商品发布成功\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.240"
+    },
+    {
+      "id": "M-D1",
+      "module": "库存",
+      "content": "库存调 0 自动下架",
+      "process": "在 /seller/products 把库存改成 0 并保存",
+      "expected": "状态变 SOLD_OUT",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":0,\"status\":\"SOLD_OUT\",\"status_label\":\"售罄下架\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"库存已调整为 0，商品自动下架，排队意向已售罄作废\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.254"
+    },
+    {
+      "id": "M-D2",
+      "module": "库存",
+      "content": "补货后恢复在售",
+      "process": "把库存改成 5 并保存",
+      "expected": "状态恢复 ON_SALE",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"库存已调整为 5，商品恢复在售\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.276"
+    },
+    {
+      "id": "M-D3",
+      "module": "库存",
+      "content": "库存调负数被拒",
+      "process": "把库存改成 -3 并保存",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"库存不能为负数\",\"details\":[{\"loc\":[\"body\",\"stock\"],\"msg\":\"库存不能为负数\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.293"
+    },
+    {
+      "id": "M-E1",
+      "module": "类别",
+      "content": "可新建大类与二级小类",
+      "process": "在 /seller/categories 新建大类，再在其下新建小类",
+      "expected": "两次都 HTTP 200，且小类 parent_id 指向大类",
+      "status": 200,
+      "raw": "{\"category\":{\"id\":\"470e93468a4a4d62963745480cc7fd10\",\"name\":\"手工小类_m91268\",\"parent_id\":\"e7d06e30abea4c8699f0c76e854b98f8\",\"level\":2,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"product_count\":0},\"message\":\"类别创建成功\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.327"
+    },
+    {
+      "id": "M-E2",
+      "module": "类别",
+      "content": "有商品的类别禁止删除",
+      "process": "在类别页删除已被商品使用的「手动测试小类」",
+      "expected": "HTTP 409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"该类别下还有商品，无法删除\"}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.346"
+    },
+    {
+      "id": "M-E3",
+      "module": "类别",
+      "content": "发布商品不选类别被拒",
+      "process": "在发布页不选类别直接提交",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"商品必须选择二级类别\",\"details\":[{\"loc\":[\"body\",\"category_id\"],\"msg\":\"商品必须选择二级类别\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.360"
+    },
+    {
+      "id": "M-F1a",
+      "module": "队列",
+      "content": "客户1 提交意向，位次应为 1",
+      "process": "客户 f1 登录，对「手动商品C」提交购买意向",
+      "expected": "queue_position = 1",
+      "status": 200,
+      "raw": "{\"intent\":{\"id\":\"02aba357c0dd4ce9bed09538e912bb8a\",\"product_id\":\"451c29f335ab45c596d345965783ed02\",\"customer_id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"status\":\"QUEUED\",\"status_label\":\"排队中\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\"},\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"queue_position\":1,\"message\":\"已进入该商品队列，请耐心等待卖家处理\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.600"
+    },
+    {
+      "id": "M-F1b",
+      "module": "队列",
+      "content": "客户2 提交意向，位次应为 2",
+      "process": "客户 f2 登录，对同一商品提交意向",
+      "expected": "queue_position = 2",
+      "status": 200,
+      "raw": "{\"intent\":{\"id\":\"c06ab0101a2c4daca2b9d0ab7df1cd4a\",\"product_id\":\"451c29f335ab45c596d345965783ed02\",\"customer_id\":\"25a699ff599a415fb3044b77d50ffde5\",\"status\":\"QUEUED\",\"status_label\":\"排队中\",\"queue_position\":2,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\"},\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"queue_position\":2,\"message\":\"已进入该商品队列，请耐心等待卖家处理\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.613"
+    },
+    {
+      "id": "M-F2",
+      "module": "队列",
+      "content": "同一客户重复提交被拒",
+      "process": "客户 f1 对同一商品再次提交",
+      "expected": "HTTP 409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"您已在该商品的队列中，请勿重复提交\"}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.631"
+    },
+    {
+      "id": "M-F3",
+      "module": "交易",
+      "content": "卖家进入交易，商品冻结",
+      "process": "在 /seller/intents 对「手动商品C」点「进入交易」",
+      "expected": "HTTP 200 且商品状态 FROZEN",
+      "status": 200,
+      "raw": "{\"intent\":{\"id\":\"02aba357c0dd4ce9bed09538e912bb8a\",\"product_id\":\"451c29f335ab45c596d345965783ed02\",\"customer_id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"status\":\"IN_TRANSACTION\",\"status_label\":\"进入交易\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"customer\":{\"id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"username\":\"f1_m91268\",\"phone\":\"13900000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-10-28 20:41:09\"}},\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":5,\"status\":\"FROZEN\",\"status_label\":\"冻结\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"已与队列第一位进入交易，商品自动冻结，队列已封口\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.646"
+    },
+    {
+      "id": "M-F4",
+      "module": "交易",
+      "content": "冻结期间新客户下单被拒",
+      "process": "商品冻结后，另一客户尝试提交意向",
+      "expected": "HTTP 409/422",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"商品交易中，暂停接收新意向\"}}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.654"
+    },
+    {
+      "id": "M-F5",
+      "module": "交易",
+      "content": "标记失败并作废，下一位补位",
+      "process": "卖家对该笔交易标记失败，失败者处理选作废",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"intent\":{\"id\":\"02aba357c0dd4ce9bed09538e912bb8a\",\"product_id\":\"451c29f335ab45c596d345965783ed02\",\"customer_id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"status\":\"VOIDED\",\"status_label\":\"已作废\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"customer\":{\"id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"username\":\"f1_m91268\",\"phone\":\"13900000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-10-28 20:41:09\"}},\"product\":{\"id\":\"451c29f335ab45c596d345965783ed02\",\"name\":\"手动商品C_m91268\",\"description\":\"手动测试\",\"price\":66.0,\"price_cents\":6600,\"stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"交易失败，库存不变，商品恢复在售；该买家意向已作废\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.685"
+    },
+    {
+      "id": "M-G1a",
+      "module": "售罄",
+      "content": "库存 1 成交后商品售罄下架",
+      "process": "卖家进入交易后标记成功",
+      "expected": "库存 0 且状态 SOLD_OUT",
+      "status": 200,
+      "raw": "{\"intent\":{\"id\":\"ec468ea734c84e6cb9ab3725aa6452c4\",\"product_id\":\"1a58f6f1355b4e2dae0dde013a767251\",\"customer_id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"status\":\"SUCCESS\",\"status_label\":\"交易成功\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"customer\":{\"id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"username\":\"f1_m91268\",\"phone\":\"13900000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-10-28 20:41:09\"}},\"product\":{\"id\":\"1a58f6f1355b4e2dae0dde013a767251\",\"name\":\"手动商品G_m91268\",\"description\":\"库存1\",\"price\":30.0,\"price_cents\":3000,\"stock\":0,\"status\":\"SOLD_OUT\",\"status_label\":\"售罄下架\",\"category_id\":\"16f1796c2a904d95a804eb400bffae3e\",\"category_name\":\"手动测试小类\",\"parent_category_id\":\"8df535623fba41b3a79d0791d1834ee2\",\"parent_category_name\":\"手动测试大类\",\"published_at\":\"2026-10-28 20:41:09\",\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"images\":[],\"primary_image\":null,\"image_count\":0},\"message\":\"交易成功，库存已扣减至 0，商品自动下架，剩余排队意向已售罄作废\"}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.789"
+    },
+    {
+      "id": "M-G1b",
+      "module": "售罄",
+      "content": "其余排队意向自动作废",
+      "process": "查看另一名客户的意向状态",
+      "expected": "存在 SOLD_OUT 意向",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"ec468ea734c84e6cb9ab3725aa6452c4\",\"product_id\":\"1a58f6f1355b4e2dae0dde013a767251\",\"customer_id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"status\":\"SUCCESS\",\"status_label\":\"交易成功\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"customer\":{\"id\":\"cd81a05ea3eb49e684c508c8a83a84c4\",\"username\":\"f1_m91268\",\"phone\":\"13900000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-10-28 20:41:09\"}},{\"id\":\"69e83f1484ca4b96bbe62163b646f67c\",\"product_id\":\"1a58f6f1355b4e2dae0dde013a767251\",\"customer_id\":\"25a699ff599a415fb3044b77d50ffde5\",\"status\":\"SOLD_OUT\",\"status_label\":\"售罄作废\",\"queue_position\":1,\"requeue_count\":0,\"created_at\":\"2026-10-28 20:41:09\",\"updated_at\":\"2026-10-28 20:41:09\",\"customer\":{\"id\":\"25a699ff599a415fb3044b77d50ffde5\",\"username\":\"f2_m91268\",\"phone\":\"13900000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-10-28 20:41:09\"}}],\"total\":2,\"page\":1,\"page_size\":10}",
+      "result": "PASS",
+      "time": "2026-10-28 20:41:09.809"
+    }
+  ]
+}
