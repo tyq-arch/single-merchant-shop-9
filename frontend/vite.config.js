@@ -2,11 +2,26 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // 开发期把 /api 与 /uploads 代理到后端，保证开发/生产环境前端代码零差异。
 // 见 docs/04-前端技术栈调研报告.md 第 3.2 节。
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // Element Plus 按需引入：模板中用到哪个组件就打包哪个组件及其样式
+    AutoImport({
+      resolvers: [ElementPlusResolver({ importStyle: 'css' })],
+      dts: false,
+    }),
+    Components({
+      resolvers: [ElementPlusResolver({ importStyle: 'css' })],
+      directives: true,
+      dts: false,
+    }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
