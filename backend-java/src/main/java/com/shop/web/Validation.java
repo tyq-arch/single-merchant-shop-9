@@ -1,5 +1,7 @@
 package com.shop.web;
 
+import com.shop.errors.ValidationException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -7,14 +9,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.shop.errors.ValidationException;
-
 /**
  * 参数校验：错误结构对齐 FastAPI 的 422 响应。
  */
 public final class Validation {
 
-    private static final Pattern PHONE = Pattern.compile("^[0-9+\\-\\s]{5,20}$");
+    /** 手机号：11 位，1 开头、第二位 3-9。 */
+    private static final Pattern MOBILE = Pattern.compile("^1[3-9]\\d{9}$");
+    /** 座机（带区号）：去掉分隔符后为 0 开头的 10~12 位。 */
+    private static final Pattern LANDLINE = Pattern.compile("^0\\d{9,11}$");
+    /** 座机（不带区号）：7~8 位本地号码。 */
+    private static final Pattern LOCAL_PHONE = Pattern.compile("^\\d{7,8}$");
+    /** 号码中允许出现的字符：数字、+、短横线、半角/全角空格、半角/全角括号。 */
+    private static final Pattern PHONE_CHARS = Pattern.compile("[0-9+\\-\\s()（）\\u00A0\\u3000]+");
+    /** 归一化时需要移除的分隔符。 */
+    private static final Pattern PHONE_SEPARATOR = Pattern.compile("[\\s\\-()（）\\u00A0\\u3000]");
 
     private Validation() {
     }
@@ -45,39 +54,37 @@ public final class Validation {
         return trimmed;
     }
 
-    /** 密码校验：≥8 位且满足强度（大写/小写/数字/特殊字符至少 3 类）（C-29 / NFR-003）。 */
-    public static String password(String value, String location, String field, String label) {
-        String pwd = text(value, location, field, 8, 128, label);
-        int classes = 0;
-        if (pwd.matches(".*[A-Z].*")) {
-            classes++;
-        }
-        if (pwd.matches(".*[a-z].*")) {
-            classes++;
-        }
-        if (pwd.matches(".*[0-9].*")) {
-            classes++;
-        }
-        if (pwd.matches(".*[^A-Za-z0-9].*")) {
-            classes++;
-        }
-        if (classes < 3) {
-            throw error(location, field,
-                    label + "强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类，且不少于 8 位");
-        }
-        return pwd;
-    }
-
     public static void optionalLength(String value, String location, String field, int max, String label) {
         if (value != null && value.length() > max) {
             throw error(location, field, label + "长度不能超过 " + max + " 个字符");
         }
     }
 
-    public static void phone(String value, String location, String field) {
-        if (value == null || !PHONE.matcher(value).matches()) {
+    /**
+     * 联系电话校验：接受手机号、带区号座机、7~8 位本地座机，
+     * 允许 +86 前缀、空格、短横线与括号。校验通过后返回归一化号码
+     * （仅保留数字，并去掉 +86 前缀），便于保存、搜索与脱敏。
+     */
+    public static String phone(String value, String location, String field) {
+        if (value == null || value.trim().isEmpty()) {
+            throw error(location, field, "联系电话不能为空");
+        }
+        String raw = value.trim();
+        if (!PHONE_CHARS.matcher(raw).matches()) {
             throw error(location, field, "联系电话格式不正确");
         }
+        String digits = PHONE_SEPARATOR.matcher(raw).replaceAll("");
+        if (digits.startsWith("+86")) {
+            digits = digits.substring(3);
+        } else if (digits.startsWith("86") && digits.length() > 11) {
+            digits = digits.substring(2);
+        }
+        if (!MOBILE.matcher(digits).matches()
+                && !LANDLINE.matcher(digits).matches()
+                && !LOCAL_PHONE.matcher(digits).matches()) {
+            throw error(location, field, "联系电话格式不正确");
+        }
+        return digits;
     }
 
     /** 价格校验并转换为分：大于 0、不超过 9999999、最多两位小数。 */
