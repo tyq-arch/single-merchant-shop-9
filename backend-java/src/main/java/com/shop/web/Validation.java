@@ -54,6 +54,58 @@ public final class Validation {
         return trimmed;
     }
 
+    /** 卖家密码强度校验：8~128 位（FR-037）。 */
+    public static String password(String value, String location, String field, String label) {
+        return text(value, location, field, 8, 128, label);
+    }
+
+    /**
+     * 客户密码强度：8~128 位，且大写字母 / 小写字母 / 数字 / 特殊字符至少 3 类
+     * （NFR-003、C-29）。仅用于设置密码（注册、修改），登录不校验强度。
+     */
+    public static String strongPassword(String value, String location, String field, String label) {
+        String password = text(value, location, field, 8, 128, label);
+        if (characterClasses(password) < 3) {
+            throw error(location, field,
+                    label + "强度不足：需包含大写字母、小写字母、数字、特殊字符中的至少 3 类");
+        }
+        return password;
+    }
+
+    /** 统计命中字符类别数：大写 / 小写 / 数字 / 其他符号。 */
+    private static int characterClasses(String value) {
+        boolean upper = false;
+        boolean lower = false;
+        boolean digit = false;
+        boolean symbol = false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isUpperCase(c)) {
+                upper = true;
+            } else if (Character.isLowerCase(c)) {
+                lower = true;
+            } else if (Character.isDigit(c)) {
+                digit = true;
+            } else {
+                symbol = true;
+            }
+        }
+        int count = 0;
+        if (upper) {
+            count++;
+        }
+        if (lower) {
+            count++;
+        }
+        if (digit) {
+            count++;
+        }
+        if (symbol) {
+            count++;
+        }
+        return count;
+    }
+
     public static void optionalLength(String value, String location, String field, int max, String label) {
         if (value != null && value.length() > max) {
             throw error(location, field, label + "长度不能超过 " + max + " 个字符");
@@ -102,7 +154,11 @@ public final class Validation {
         if (decimal.stripTrailingZeros().scale() > 2) {
             throw error(location, field, "价格最多保留两位小数");
         }
-        return decimal.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).intValueExact();
+        int cents = decimal.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).intValueExact();
+        if (cents <= 0) {
+            throw error(location, field, "价格不能低于 0.01 元");
+        }
+        return cents;
     }
 
     /** 库存校验：必填且为非负整数。 */

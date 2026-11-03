@@ -87,7 +87,7 @@ public class IntentService {
                 "SELECT COUNT(*) AS c FROM buy_intent WHERE " + where, params.toArray());
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(pageSize);
-        pageParams.add((page - 1) * pageSize);
+        pageParams.add(((long) (page - 1)) * pageSize);
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 "SELECT * FROM buy_intent WHERE " + where
                         + " ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
@@ -127,7 +127,7 @@ public class IntentService {
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 "SELECT * FROM buy_intent WHERE customer_id = ? "
                         + "ORDER BY updated_at DESC, rowid DESC LIMIT ? OFFSET ?",
-                customerId, pageSize, (page - 1) * pageSize);
+                customerId, pageSize, ((long) (page - 1)) * pageSize);
         List<Map<String, Object>> items = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             Map<String, Object> item = Serializers.intent(row, null);
@@ -159,7 +159,7 @@ public class IntentService {
                 "SELECT COUNT(*) AS c FROM buy_intent i WHERE " + where, params.toArray());
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(pageSize);
-        pageParams.add((page - 1) * pageSize);
+        pageParams.add(((long) (page - 1)) * pageSize);
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 "SELECT i.*, cu.username, cu.phone, cu.trade_location, cu.created_at AS customer_created_at "
                         + "FROM buy_intent i JOIN customer cu ON cu.id = i.customer_id "

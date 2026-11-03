@@ -43,6 +43,22 @@ public final class Utils {
         }
     }
 
+    /**
+     * 转义 SQL LIKE 元字符（% _ \），配合 {@code LIKE ? ESCAPE '\'} 使用，
+     * 保证关键词按字面匹配（BUG-002）。
+     */
+    public static String escapeLike(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        return keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    /** 构造 LIKE 模糊匹配参数。 */
+    public static String likePattern(String keyword) {
+        return "%" + escapeLike(keyword) + "%";
+    }
+
     /** 手机号脱敏：保留前 3 位与后 4 位（FR-019 / NFR-003）。 */
     public static String maskPhone(String phone) {
         if (phone == null || phone.isEmpty()) {

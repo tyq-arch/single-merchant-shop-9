@@ -76,6 +76,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    /** 请求方法不支持时返回 405，避免被兜底处理器转成 500。 */
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotSupported(
+            org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        return handleApi(new ApiException(405, "METHOD_NOT_ALLOWED",
+                "请求方法不被支持：" + e.getMethod()));
+    }
+
+    /** Content-Type 不支持时返回 415，避免被兜底处理器转成 500。 */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMediaTypeNotSupported(
+            org.springframework.web.HttpMediaTypeNotSupportedException e) {
+        return handleApi(new ApiException(415, "UNSUPPORTED_MEDIA_TYPE",
+                "请求内容类型不被支持：" + e.getContentType()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception e) {
         log.error("未处理异常", e);

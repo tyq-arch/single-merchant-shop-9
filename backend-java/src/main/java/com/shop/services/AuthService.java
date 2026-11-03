@@ -87,22 +87,23 @@ public class AuthService {
 
     public Map<String, Object> registerCustomer(String username, String password, String phone,
                                                 String tradeLocation) {
-        Map<String, Object> existing = db.read(conn ->
-                Jdbc.queryOne(conn, "SELECT id FROM customer WHERE username = ?", username));
-        if (existing != null) {
-            throw new ConflictException("用户名已被注册");
-        }
         String id = Utils.newId();
         String now = Utils.nowIso();
-        db.transaction(conn -> {
+        // 口令哈希较慢，放在写锁之外计算，避免长时间占用全局写锁。
+        String passwordHash = security.hashPassword(password);
+        // 查重与插入必须在同一写事务内，避免并发注册时唯一约束冲突被当作 500。
+        Map<String, Object> customer = db.transaction(conn -> {
+            Map<String, Object> existing = Jdbc.queryOne(conn,
+                    "SELECT id FROM customer WHERE username = ?", username);
+            if (existing != null) {
+                throw new ConflictException("用户名已被注册");
+            }
             Jdbc.update(conn,
                     "INSERT INTO customer (id, username, password_hash, phone, trade_location, created_at, updated_at) "
                             + "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    id, username, security.hashPassword(password), phone, tradeLocation, now, now);
-            return null;
+                    id, username, passwordHash, phone, tradeLocation, now, now);
+            return Jdbc.queryOne(conn, "SELECT * FROM customer WHERE id = ?", id);
         });
-        Map<String, Object> customer = db.read(conn ->
-                Jdbc.queryOne(conn, "SELECT * FROM customer WHERE id = ?", id));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("customer", com.shop.serializers.Serializers.customer(customer, false));
         result.put("message", "注册成功，请登录");

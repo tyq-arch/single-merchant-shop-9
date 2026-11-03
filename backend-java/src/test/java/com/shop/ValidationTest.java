@@ -37,4 +37,21 @@ class ValidationTest {
         assertThrows(ValidationException.class, () -> Validation.phone("1380000123", "body", "phone"));
         assertThrows(ValidationException.class, () -> Validation.phone("010-123456", "body", "phone"));
     }
+
+    /** 客户密码：≥8 位 + 大写/小写/数字/特殊字符至少 3 类（NFR-003 / C-29）。 */
+    @Test
+    void enforcesCustomerPasswordStrength() {
+        assertEquals("Pass1234", Validation.strongPassword("Pass1234", "body", "password", "密码"));
+        assertEquals("Abcdef1!", Validation.strongPassword("Abcdef1!", "body", "password", "密码"));
+        assertEquals("中文密码测试Ab1", Validation.strongPassword("中文密码测试Ab1", "body", "password", "密码"));
+        // 仅小写 + 数字（2 类）
+        assertThrows(ValidationException.class,
+                () -> Validation.strongPassword("pass1234", "body", "password", "密码"));
+        // 仅数字（1 类）
+        assertThrows(ValidationException.class,
+                () -> Validation.strongPassword("12345678", "body", "password", "密码"));
+        // 长度不足 8 位
+        assertThrows(ValidationException.class,
+                () -> Validation.strongPassword("Abc123", "body", "password", "密码"));
+    }
 }

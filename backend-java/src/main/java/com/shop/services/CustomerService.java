@@ -3,6 +3,7 @@ package com.shop.services;
 import com.shop.db.Jdbc;
 import com.shop.errors.NotFoundException;
 import com.shop.serializers.Serializers;
+import com.shop.util.Utils;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
@@ -28,15 +29,16 @@ public class CustomerService {
         List<Object> params = new ArrayList<>();
         StringBuilder where = new StringBuilder("1 = 1");
         if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append(" AND (username LIKE ? OR phone LIKE ?)");
-            params.add("%" + keyword.trim() + "%");
-            params.add("%" + keyword.trim() + "%");
+            where.append(" AND (username LIKE ? ESCAPE '\\' OR phone LIKE ? ESCAPE '\\')");
+            String pattern = Utils.likePattern(keyword.trim());
+            params.add(pattern);
+            params.add(pattern);
         }
         Long total = Jdbc.scalarLong(conn,
                 "SELECT COUNT(*) AS c FROM customer WHERE " + where, params.toArray());
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(pageSize);
-        pageParams.add((page - 1) * pageSize);
+        pageParams.add(((long) (page - 1)) * pageSize);
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 "SELECT * FROM customer WHERE " + where + " ORDER BY created_at DESC, rowid DESC "
                         + "LIMIT ? OFFSET ?", pageParams.toArray());

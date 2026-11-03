@@ -50,7 +50,17 @@ public class ProductService {
     }
 
     public Map<String, Object> full(Connection conn, Map<String, Object> row) throws Exception {
-        return Serializers.product(row, images(conn, Jdbc.strOf(row, "id")));
+        return full(conn, row, false);
+    }
+
+    /** 买家可见视图：冻结商品状态文案为「商品交易中」（需求 §3.7）。 */
+    public Map<String, Object> publicFull(Connection conn, Map<String, Object> row) throws Exception {
+        return full(conn, row, true);
+    }
+
+    private Map<String, Object> full(Connection conn, Map<String, Object> row, boolean buyerFacing)
+            throws Exception {
+        return Serializers.product(row, images(conn, Jdbc.strOf(row, "id")), buyerFacing);
     }
 
     public Map<String, Object> fullById(Connection conn, String productId) throws Exception {
@@ -64,7 +74,7 @@ public class ProductService {
         StringBuilder where = new StringBuilder("p.status IN ('ON_SALE', 'FROZEN')");
         List<Object> params = new ArrayList<>();
         appendFilters(conn, where, params, keyword, categoryId);
-        return pageOf(conn, where.toString(), params, page, pageSize);
+        return pageOf(conn, where.toString(), params, page, pageSize, true);
     }
 
     /** 卖家商品列表。 */
@@ -77,7 +87,7 @@ public class ProductService {
             params.add(status.trim());
         }
         appendFilters(conn, where, params, keyword, categoryId);
-        return pageOf(conn, where.toString(), params, page, pageSize);
+        return pageOf(conn, where.toString(), params, page, pageSize, false);
     }
 
     /** 历史商品：已售罄下架 / 手动下架（FR-012）。 */
@@ -86,10 +96,10 @@ public class ProductService {
         StringBuilder where = new StringBuilder("p.status IN ('SOLD_OUT', 'OFF_SHELF')");
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append(" AND p.name LIKE ?");
-            params.add("%" + keyword.trim() + "%");
+            where.append(" AND p.name LIKE ? ESCAPE '\\'");
+            params.add(Utils.likePattern(keyword.trim()));
         }
-        Map<String, Object> result = pageOf(conn, where.toString(), params, page, pageSize);
+        Map<String, Object> result = pageOf(conn, where.toString(), params, page, pageSize, false);
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         for (Map<String, Object> item : items) {
@@ -336,18 +346,18 @@ public class ProductService {
     }
 
     private Map<String, Object> pageOf(Connection conn, String where, List<Object> params,
-                                       int page, int pageSize) throws Exception {
+                                       int page, int pageSize, boolean buyerFacing) throws Exception {
         Long total = Jdbc.scalarLong(conn,
                 "SELECT COUNT(*) AS c FROM product p WHERE " + where, params.toArray());
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(pageSize);
-        pageParams.add((page - 1) * pageSize);
+        pageParams.add(((long) (page - 1)) * pageSize);
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 SELECT_PRODUCT + "WHERE " + where + " ORDER BY p.published_at DESC, p.rowid DESC LIMIT ? OFFSET ?",
                 pageParams.toArray());
         List<Map<String, Object>> items = new ArrayList<>();
         for (Map<String, Object> row : rows) {
-            items.add(full(conn, row));
+            items.add(full(conn, row, buyerFacing));
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);
@@ -360,8 +370,8 @@ public class ProductService {
     private void appendFilters(Connection conn, StringBuilder where, List<Object> params,
                                String keyword, String categoryId) throws Exception {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append(" AND p.name LIKE ?");
-            params.add("%" + keyword.trim() + "%");
+            where.append(" AND p.name LIKE ? ESCAPE '\\'");
+            params.add(Utils.likePattern(keyword.trim()));
         }
         if (categoryId != null && !categoryId.trim().isEmpty()) {
             Map<String, Object> category = categories.getCategory(conn, categoryId.trim());

@@ -25,7 +25,7 @@ public class LogService {
         Long total = Jdbc.scalarLong(conn, "SELECT COUNT(*) AS c FROM operation_log");
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 "SELECT * FROM operation_log ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
-                pageSize, (page - 1) * pageSize);
+                pageSize, ((long) (page - 1)) * pageSize);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("items", rows);
         result.put("total", total == null ? 0L : total);

@@ -2,8 +2,10 @@ package com.shop.web;
 
 import com.shop.config.AppConfig;
 import com.shop.errors.ApiException;
+import com.shop.services.AuthService;
 import com.shop.util.Utils;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,14 +23,19 @@ import java.util.Map;
 public class FileController {
 
     private final AppConfig config;
+    private final AuthService auth;
 
-    public FileController(AppConfig config) {
+    public FileController(AppConfig config, AuthService auth) {
         this.config = config;
+        this.auth = auth;
     }
 
-    /** 商品图片：最多 9 张、单张不超过 5MB、仅 JPG / PNG（FR-008）。 */
+    /** 商品图片：最多 9 张、单张不超过 5MB、仅 JPG / PNG（FR-008）；仅卖家可上传（OBS-001）。 */
     @PostMapping("/images")
-    public Map<String, Object> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
+    public Map<String, Object> uploadImage(@RequestParam("file") MultipartFile file,
+                                           @RequestHeader(value = "Authorization", required = false) String authorization)
+            throws IOException {
+        auth.requireSeller(authorization);
         String ext = extensionOf(file.getOriginalFilename());
         if (!config.getAllowedImageExt().contains(ext)) {
             throw new ApiException(400, "INVALID_IMAGE_FORMAT", "商品图片仅支持 jpg / jpeg / png 格式");
@@ -40,9 +47,12 @@ public class FileController {
         return store(file, ext, "image");
     }
 
-    /** 富媒体描述素材：图片支持 JPG/PNG/GIF/WEBP，视频支持 MP4/WEBM。 */
+    /** 富媒体描述素材：图片支持 JPG/PNG/GIF/WEBP，视频支持 MP4/WEBM；仅卖家可上传（OBS-001）。 */
     @PostMapping("/media")
-    public Map<String, Object> uploadMedia(@RequestParam("file") MultipartFile file) throws IOException {
+    public Map<String, Object> uploadMedia(@RequestParam("file") MultipartFile file,
+                                           @RequestHeader(value = "Authorization", required = false) String authorization)
+            throws IOException {
+        auth.requireSeller(authorization);
         String ext = extensionOf(file.getOriginalFilename());
         if (!config.getAllowedMediaExt().contains(ext)) {
             throw new ApiException(400, "INVALID_MEDIA_FORMAT",

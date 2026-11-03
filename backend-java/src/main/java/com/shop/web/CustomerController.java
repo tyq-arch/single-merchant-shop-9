@@ -42,7 +42,7 @@ public class CustomerController {
     @PostMapping("/register")
     public Map<String, Object> register(@RequestBody CustomerRegisterRequest body) {
         String username = Validation.text(body.username, "body", "username", 1, 64, "用户名");
-        String password = Validation.text(body.password, "body", "password", 6, 128, "密码");
+        String password = Validation.strongPassword(body.password, "body", "password", "密码");
         String phone = Validation.phone(body.phone, "body", "phone");
         String location = Validation.text(body.tradeLocation, "body", "trade_location", 1, 200, "默认交易地点");
         return auth.registerCustomer(username, password, phone, location);
@@ -85,7 +85,7 @@ public class CustomerController {
                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> customer = auth.requireCustomer(authorization);
         String oldPassword = Validation.text(body.oldPassword, "body", "old_password", 1, 128, "旧密码");
-        String newPassword = Validation.text(body.newPassword, "body", "new_password", 6, 128, "新密码");
+        String newPassword = Validation.strongPassword(body.newPassword, "body", "new_password", "新密码");
         auth.changeCustomerPassword(Jdbc.strOf(customer, "id"), oldPassword, newPassword);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("message", "密码修改成功");

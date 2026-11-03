@@ -5,6 +5,8 @@ import { ElMessage } from 'element-plus'
 
 import { register } from '@/api/customer'
 import {
+  PASSWORD_MAX,
+  PASSWORD_RULE_TEXT,
   PHONE_LENGTH,
   validateCustomerPassword,
   validatePhone,
@@ -128,11 +130,12 @@ async function onSubmit() {
           <el-input
             v-model="form.password"
             type="password"
-            placeholder="至少 6 位"
+            :placeholder="PASSWORD_RULE_TEXT"
             show-password
-            maxlength="128"
+            :maxlength="PASSWORD_MAX"
             autocomplete="new-password"
           />
+          <p class="field-hint">{{ PASSWORD_RULE_TEXT }}</p>
         </el-form-item>
 
         <el-form-item label="确认密码" prop="confirmPassword">
@@ -141,7 +144,7 @@ async function onSubmit() {
             type="password"
             placeholder="请再次输入密码"
             show-password
-            maxlength="128"
+            :maxlength="PASSWORD_MAX"
             autocomplete="new-password"
           />
         </el-form-item>
@@ -222,6 +225,13 @@ async function onSubmit() {
 .auth-card__submit {
   width: 100%;
   margin-top: var(--sp-2);
+}
+
+.field-hint {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--c-text-weak);
 }
 
 .auth-card__switch {

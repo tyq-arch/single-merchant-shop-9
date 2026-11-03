@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { changePassword, getMe, logout } from '@/api/customer'
 import { useCustomerStore } from '@/stores/customer'
-import { validateCustomerPassword } from '@/utils/validate'
+import { PASSWORD_MAX, PASSWORD_RULE_TEXT, validateCustomerPassword } from '@/utils/validate'
 
 /**
  * B8 个人中心 —— FR-018 / NFR-003。
@@ -167,17 +167,18 @@ onMounted(load)
               v-model="form.newPassword"
               type="password"
               show-password
-              placeholder="至少 6 位"
-              maxlength="128"
+              :placeholder="PASSWORD_RULE_TEXT"
+              :maxlength="PASSWORD_MAX"
               autocomplete="new-password"
             />
+            <p class="field-hint">{{ PASSWORD_RULE_TEXT }}</p>
           </el-form-item>
           <el-form-item label="确认新密码" prop="confirmPassword">
             <el-input
               v-model="form.confirmPassword"
               type="password"
               show-password
-              maxlength="128"
+              :maxlength="PASSWORD_MAX"
               autocomplete="new-password"
             />
           </el-form-item>
@@ -252,5 +253,12 @@ onMounted(load)
 .profile__logout {
   width: 100%;
   margin-top: var(--sp-4);
+}
+
+.field-hint {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--c-text-weak);
 }
 </style>

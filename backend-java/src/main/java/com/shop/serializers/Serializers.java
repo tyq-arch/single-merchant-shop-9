@@ -25,8 +25,18 @@ public final class Serializers {
         return item;
     }
 
-    /** 商品响应；images 为空时 primary_image 为 null。 */
+    /** 卖家侧商品响应。 */
     public static Map<String, Object> product(Map<String, Object> row, List<Map<String, Object>> images) {
+        return product(row, images, false);
+    }
+
+    /**
+     * 商品响应；images 为空时 primary_image 为 null。
+     *
+     * @param buyerFacing true 时状态文案走买家口径（冻结 → 「商品交易中」）
+     */
+    public static Map<String, Object> product(Map<String, Object> row, List<Map<String, Object>> images,
+                                              boolean buyerFacing) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", Jdbc.strOf(row, "id"));
         item.put("name", Jdbc.strOf(row, "name"));
@@ -35,7 +45,10 @@ public final class Serializers {
         item.put("price_cents", Jdbc.intOf(row, "price_cents"));
         item.put("stock", Jdbc.intOf(row, "stock"));
         item.put("status", Jdbc.strOf(row, "status"));
-        item.put("status_label", Enums.ProductStatus.label(Jdbc.strOf(row, "status")));
+        String status = Jdbc.strOf(row, "status");
+        item.put("status_label", buyerFacing
+                ? Enums.ProductStatus.buyerLabel(status)
+                : Enums.ProductStatus.label(status));
         item.put("category_id", Jdbc.strOf(row, "category_id"));
         item.put("category_name", Jdbc.strOf(row, "category_name"));
         item.put("parent_category_id", Jdbc.strOf(row, "parent_category_id"));

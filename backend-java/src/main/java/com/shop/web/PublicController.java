@@ -51,7 +51,7 @@ public class PublicController {
             if (row == null || Enums.ProductStatus.OFF_SHELF.equals(Jdbc.strOf(row, "status"))) {
                 throw new NotFoundException("商品不存在或已下架");
             }
-            Map<String, Object> product = products.full(conn, row);
+            Map<String, Object> product = products.publicFull(conn, row);
             Long queueCount = Jdbc.scalarLong(conn,
                     "SELECT COUNT(*) AS c FROM queue_item WHERE product_id = ?", productId);
             Map<String, Object> result = new LinkedHashMap<>();

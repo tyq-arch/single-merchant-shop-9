@@ -27,6 +27,14 @@ public final class Enums {
         public static final Set<String> HISTORY = Collections.unmodifiableSet(
                 new HashSet<>(Arrays.asList(SOLD_OUT, OFF_SHELF)));
 
+        /**
+         * 买家可见文案：冻结商品对买家展示为「商品交易中」（需求 §3.7）。
+         * 卖家后台仍用 {@link #label(String)} 的「冻结」，两边语义不同，不可合并。
+         */
+        public static String buyerLabel(String status) {
+            return FROZEN.equals(status) ? "商品交易中" : label(status);
+        }
+
         public static String label(String status) {
             if (ON_SALE.equals(status)) {
                 return "在售";
