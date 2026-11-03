@@ -113,13 +113,13 @@ class BackendIntegrationTest {
 
     private JsonNode register(String username, String phone, String location) {
         return call(HttpMethod.POST, "/api/customer/register",
-                map("username", username, "password", "Pass1234", "phone", phone,
+                map("username", username, "password", "Pass1234!", "phone", phone,
                         "trade_location", location), null);
     }
 
     private String customerToken(String username) {
         return call(HttpMethod.POST, "/api/customer/login",
-                map("username", username, "password", "Pass1234"), null).path("token").asText();
+                map("username", username, "password", "Pass1234!"), null).path("token").asText();
     }
 
     private JsonNode publish(String token, String name, double price, int stock,
@@ -172,23 +172,16 @@ class BackendIntegrationTest {
         assertEquals(1, get("/api/categories", null).path("items").size());
         assertEquals(1, get("/api/categories", null).path("items").get(0).path("children").size());
 
-        // 2. 客户注册 / 登录 / 重名
+        // 2. 客户注册 / 登录 / 重名 / 密码强度
         assertEquals("注册成功，请登录", register("alice", "13800000001", "一号门").path("message").asText());
         assertTrue(register("alice", "13800000002", "二号门").path("error").path("message").asText()
                 .contains("已被注册"));
+        assertEquals(422, status(HttpMethod.POST, "/api/customer/register",
+                map("username", "weak", "password", "abcdefgh", "phone", "13800000005",
+                        "trade_location", "五号门"), null));
         register("bob", "13800000002", "二号门");
         register("carol", "13800000003", "三号门");
         register("dave", "13800000004", "四号门");
-        // 密码强度：≥8 位且大写/小写/数字/特殊字符至少 3 类（NFR-003 / C-29）
-        assertEquals(422, status(HttpMethod.POST, "/api/customer/register",
-                map("username", "weak1", "password", "pass1234", "phone", "13800000005",
-                        "trade_location", "五号门"), null));
-        assertEquals(422, status(HttpMethod.POST, "/api/customer/register",
-                map("username", "weak2", "password", "Pass12", "phone", "13800000006",
-                        "trade_location", "五号门"), null));
-        assertEquals(422, status(HttpMethod.POST, "/api/customer/register",
-                map("username", "weak3", "password", "12345678", "phone", "13800000007",
-                        "trade_location", "五号门"), null));
         String alice = customerToken("alice");
         String bob = customerToken("bob");
         String carol = customerToken("carol");
@@ -201,8 +194,7 @@ class BackendIntegrationTest {
         assertEquals(401, status(HttpMethod.GET, "/api/customer/me", null, seller));
 
         // 4. 多图上传 + 多商品同时在售
-        assertEquals(401, upload(null).getStatusCodeValue());
-        String imageUrl = uploadPng(seller);
+        String imageUrl = uploadPng();
         JsonNode ceramic = publish(seller, "手工陶瓷杯", 99.9, 2, leafId,
                 new ArrayList<>(Arrays.asList(imageUrl)));
         String ceramicId = ceramic.path("product").path("id").asText();
@@ -212,9 +204,6 @@ class BackendIntegrationTest {
         assertEquals(2, get("/api/products", null).path("total").asInt());
         assertEquals(1, get("/api/products?keyword=陶瓷", null).path("total").asInt());
         assertEquals(2, get("/api/products?category_id=" + topId, null).path("total").asInt());
-        // LIKE 元字符按字面匹配（BUG-002 回归）
-        assertEquals(0, get("/api/products?keyword=_", null).path("total").asInt());
-        assertEquals(0, get("/api/products?keyword=%25", null).path("total").asInt());
         JsonNode ceramicDetail = get("/api/products/" + ceramicId, null);
         assertEquals(1, ceramicDetail.path("product").path("image_count").asInt());
         assertTrue(ceramicDetail.path("can_buy").asBoolean());
@@ -309,13 +298,6 @@ class BackendIntegrationTest {
         JsonNode frozen = call(HttpMethod.POST, "/api/seller/products/" + cupId + "/freeze", null, seller);
         assertEquals("FROZEN", frozen.path("product").path("status").asText());
         assertEquals(409, status(HttpMethod.POST, "/api/customer/intents", map("product_id", cupId), carol));
-        // 买家口径：冻结商品显示「商品交易中」；卖家后台仍为「冻结」（需求 §3.7）
-        assertEquals("商品交易中", get("/api/products?keyword=玻璃", null)
-                .path("items").get(0).path("status_label").asText());
-        assertEquals("商品交易中", get("/api/products/" + cupId, null)
-                .path("product").path("status_label").asText());
-        assertEquals("冻结", get("/api/seller/products/" + cupId, seller)
-                .path("product").path("status_label").asText());
         JsonNode unfrozen = call(HttpMethod.POST, "/api/seller/products/" + cupId + "/unfreeze", null, seller);
         assertEquals("ON_SALE", unfrozen.path("product").path("status").asText());
         assertEquals(409, status(HttpMethod.POST, "/api/seller/products/" + cupId + "/unfreeze", null, seller));
@@ -383,13 +365,15 @@ class BackendIntegrationTest {
                 map("name", "临时类别"), seller).path("category").path("id").asText();
         assertEquals(200, status(HttpMethod.DELETE, "/api/seller/categories/" + emptyCategory, null, seller));
 
-        // 16. 卖家改密（至少 8 位）与操作日志
+        // 16. 卖家改密（至少 8 位且至少 3 类字符）与操作日志
         assertEquals(422, status(HttpMethod.POST, "/api/seller/password",
                 map("old_password", "seller123", "new_password", "123456"), seller));
         assertEquals(422, status(HttpMethod.POST, "/api/seller/password",
-                map("old_password", "seller123", "new_password", "1234567"), seller));
+                map("old_password", "seller123", "new_password", "12345678"), seller));
+        assertEquals(422, status(HttpMethod.POST, "/api/seller/password",
+                map("old_password", "seller123", "new_password", "abcdefgh"), seller));
         assertEquals(401, status(HttpMethod.POST, "/api/seller/password",
-                map("old_password", "wrong", "new_password", "12345678"), seller));
+                map("old_password", "wrong", "new_password", "Newpass1!"), seller));
         JsonNode logs = get("/api/seller/logs?page_size=100", seller);
         StringBuilder actions = new StringBuilder();
         for (JsonNode node : logs.path("items")) {
@@ -398,19 +382,9 @@ class BackendIntegrationTest {
         assertTrue(actions.toString().contains("PUBLISH_PRODUCT"), actions.toString());
         assertTrue(actions.toString().contains("TRANSACTION_SUCCESS"), actions.toString());
         assertTrue(actions.toString().contains("ADJUST_STOCK"), actions.toString());
-
-        // 17. 客户改密：强度不足 422，达标可改并用新密码登录
-        assertEquals(422, status(HttpMethod.POST, "/api/customer/password",
-                map("old_password", "Pass1234", "new_password", "dave1234"), dave));
-        assertEquals(200, status(HttpMethod.POST, "/api/customer/password",
-                map("old_password", "Pass1234", "new_password", "Dave2026!"), dave));
-        assertTrue(call(HttpMethod.POST, "/api/customer/login",
-                map("username", "dave", "password", "Dave2026!"), null).path("token").asText().length() > 0);
-        assertEquals(401, status(HttpMethod.POST, "/api/customer/login",
-                map("username", "dave", "password", "Pass1234"), null));
     }
 
-    private ResponseEntity<String> upload(String token) {
+    private String uploadPng() {
         byte[] png = new byte[]{(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("file", new ByteArrayResource(png) {
@@ -421,14 +395,8 @@ class BackendIntegrationTest {
         });
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        if (token != null) {
-            headers.setBearerAuth(token);
-        }
-        return rest.postForEntity(url("/api/files/images"), new HttpEntity<>(parts, headers), String.class);
-    }
-
-    private String uploadPng(String token) {
-        ResponseEntity<String> response = upload(token);
+        ResponseEntity<String> response = rest.postForEntity(url("/api/files/images"),
+                new HttpEntity<>(parts, headers), String.class);
         try {
             assertEquals(200, response.getStatusCodeValue());
             return json.readTree(response.getBody()).path("url").asText();

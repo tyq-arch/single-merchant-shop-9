@@ -24,6 +24,11 @@ public final class Validation {
     private static final Pattern PHONE_CHARS = Pattern.compile("[0-9+\\-\\s()（）\\u00A0\\u3000]+");
     /** 归一化时需要移除的分隔符。 */
     private static final Pattern PHONE_SEPARATOR = Pattern.compile("[\\s\\-()（）\\u00A0\\u3000]");
+    /** 密码字符类别：大写、小写、数字、特殊字符。 */
+    private static final Pattern PASSWORD_UPPER = Pattern.compile("[A-Z]");
+    private static final Pattern PASSWORD_LOWER = Pattern.compile("[a-z]");
+    private static final Pattern PASSWORD_DIGIT = Pattern.compile("\\d");
+    private static final Pattern PASSWORD_SPECIAL = Pattern.compile("[^A-Za-z0-9]");
 
     private Validation() {
     }
@@ -52,58 +57,6 @@ public final class Validation {
             throw error(location, field, label + "长度不能超过 " + max + " 个字符");
         }
         return trimmed;
-    }
-
-    /** 卖家密码强度校验：8~128 位（FR-037）。 */
-    public static String password(String value, String location, String field, String label) {
-        return text(value, location, field, 8, 128, label);
-    }
-
-    /**
-     * 客户密码强度：8~128 位，且大写字母 / 小写字母 / 数字 / 特殊字符至少 3 类
-     * （NFR-003、C-29）。仅用于设置密码（注册、修改），登录不校验强度。
-     */
-    public static String strongPassword(String value, String location, String field, String label) {
-        String password = text(value, location, field, 8, 128, label);
-        if (characterClasses(password) < 3) {
-            throw error(location, field,
-                    label + "强度不足：需包含大写字母、小写字母、数字、特殊字符中的至少 3 类");
-        }
-        return password;
-    }
-
-    /** 统计命中字符类别数：大写 / 小写 / 数字 / 其他符号。 */
-    private static int characterClasses(String value) {
-        boolean upper = false;
-        boolean lower = false;
-        boolean digit = false;
-        boolean symbol = false;
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (Character.isUpperCase(c)) {
-                upper = true;
-            } else if (Character.isLowerCase(c)) {
-                lower = true;
-            } else if (Character.isDigit(c)) {
-                digit = true;
-            } else {
-                symbol = true;
-            }
-        }
-        int count = 0;
-        if (upper) {
-            count++;
-        }
-        if (lower) {
-            count++;
-        }
-        if (digit) {
-            count++;
-        }
-        if (symbol) {
-            count++;
-        }
-        return count;
     }
 
     public static void optionalLength(String value, String location, String field, int max, String label) {
@@ -139,6 +92,32 @@ public final class Validation {
         return digits;
     }
 
+    /**
+     * 密码校验：长度 8~128 位，且至少包含大写字母、小写字母、数字、
+     * 特殊字符中的 3 类（C-29）。
+     */
+    public static String password(String value, String location, String field) {
+        String password = text(value, location, field, 8, 128, "密码");
+        int classes = 0;
+        if (PASSWORD_UPPER.matcher(password).find()) {
+            classes++;
+        }
+        if (PASSWORD_LOWER.matcher(password).find()) {
+            classes++;
+        }
+        if (PASSWORD_DIGIT.matcher(password).find()) {
+            classes++;
+        }
+        if (PASSWORD_SPECIAL.matcher(password).find()) {
+            classes++;
+        }
+        if (classes < 3) {
+            throw error(location, field,
+                    "密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类");
+        }
+        return password;
+    }
+
     /** 价格校验并转换为分：大于 0、不超过 9999999、最多两位小数。 */
     public static int priceCents(Double value, String location, String field) {
         if (value == null) {
@@ -154,11 +133,7 @@ public final class Validation {
         if (decimal.stripTrailingZeros().scale() > 2) {
             throw error(location, field, "价格最多保留两位小数");
         }
-        int cents = decimal.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).intValueExact();
-        if (cents <= 0) {
-            throw error(location, field, "价格不能低于 0.01 元");
-        }
-        return cents;
+        return decimal.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).intValueExact();
     }
 
     /** 库存校验：必填且为非负整数。 */
