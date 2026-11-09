@@ -77,10 +77,11 @@ function redirectToLogin(role) {
   window.location.replace(target)
 }
 
-function makeError(message, status, code) {
+function makeError(message, status, code, details) {
   const error = new Error(message)
   error.status = status
   error.code = code
+  error.details = details
   return error
 }
 
@@ -112,6 +113,8 @@ http.interceptors.response.use(
     const { status, data } = error.response
     const code = data?.error?.code
     const message = data?.error?.message || `请求失败（HTTP ${status}）`
+    // 下单缺货等业务错误会带明细，透传给页面做逐项提示
+    const details = data?.error?.details ?? data?.details
     const role = error.config?.__authRole || 'none'
     const url = error.config?.url || ''
 
@@ -119,15 +122,15 @@ http.interceptors.response.use(
       if (role === 'customer') {
         clearCustomerAuth()
         redirectToLogin('customer')
-        return Promise.reject(makeError('登录已过期，请重新登录', status, code))
+        return Promise.reject(makeError('登录已过期，请重新登录', status, code, details))
       }
 
       clearSellerAuth()
       redirectToLogin('seller')
-      return Promise.reject(makeError('登录已过期，请重新登录', status, code))
+      return Promise.reject(makeError('登录已过期，请重新登录', status, code, details))
     }
 
-    return Promise.reject(makeError(message, status, code))
+    return Promise.reject(makeError(message, status, code, details))
   },
 )
 

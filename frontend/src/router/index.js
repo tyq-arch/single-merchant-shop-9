@@ -4,11 +4,13 @@ import { useCustomerStore } from '@/stores/customer'
 import { useSellerStore } from '@/stores/seller'
 
 /**
- * 路由表 —— 对应《需求规格说明书-挑战A升级版》。
+ * 路由表 —— 对应《需求规格说明书-挑战B升级版》。
+ *
+ * 挑战 A 的「购买意向 / 排队 / 冻结 / 历史商品」入口已全部移除，
+ * 由「收藏 / 购物车 / 订单 5 态」取代。
  *
  * 刻意不存在的路由：
- *   - 买家撤销 / 修改意向（FR-025 已作废该能力）
- *   - 口令码查询（C-10 口令码机制作废）
+ *   - 商品详情页「立即购买」旁路（TBD-14：下单必经购物车）
  *   - 卖家注册 / 退出登录（FR-036）
  *   - 已发布商品编辑（FR-007，仅库存可调）
  */
@@ -42,22 +44,30 @@ const routes = [
         meta: { title: '注册客户', guestOnly: true },
       },
       {
-        path: 'my/intents',
-        name: 'customer-intents',
-        component: () => import('@/views/buyer/MyIntentsView.vue'),
-        meta: { title: '我的意向', requiresCustomer: true },
+        // 游客也能查看自己临时的收藏（登录后自动合并）
+        path: 'favorites',
+        name: 'buyer-favorites',
+        component: () => import('@/views/buyer/FavoritesView.vue'),
+        meta: { title: '我的收藏' },
       },
       {
-        path: 'my/intents/:id',
-        name: 'customer-intent-detail',
-        component: () => import('@/views/buyer/IntentDetailView.vue'),
-        meta: { title: '意向详情', requiresCustomer: true },
+        // 游客也能使用临时购物车；下单时才要求登录
+        path: 'cart',
+        name: 'buyer-cart',
+        component: () => import('@/views/buyer/CartView.vue'),
+        meta: { title: '购物车' },
       },
       {
         path: 'my/orders',
         name: 'customer-orders',
         component: () => import('@/views/buyer/OrdersView.vue'),
-        meta: { title: '历史下单', requiresCustomer: true },
+        meta: { title: '我的订单', requiresCustomer: true },
+      },
+      {
+        path: 'my/orders/:id',
+        name: 'customer-order-detail',
+        component: () => import('@/views/buyer/OrderDetailView.vue'),
+        meta: { title: '订单详情', requiresCustomer: true },
       },
       {
         path: 'my/profile',
@@ -103,22 +113,16 @@ const routes = [
         meta: { title: '类别管理' },
       },
       {
-        path: 'intents',
-        name: 'seller-intents',
-        component: () => import('@/views/seller/IntentsView.vue'),
-        meta: { title: '意向队列' },
+        path: 'orders',
+        name: 'seller-orders',
+        component: () => import('@/views/seller/OrdersView.vue'),
+        meta: { title: '订单管理' },
       },
       {
-        path: 'history',
-        name: 'seller-history',
-        component: () => import('@/views/seller/HistoryView.vue'),
-        meta: { title: '历史商品' },
-      },
-      {
-        path: 'history/:id',
-        name: 'seller-history-detail',
-        component: () => import('@/views/seller/HistoryDetailView.vue'),
-        meta: { title: '历史商品详情' },
+        path: 'orders/:id',
+        name: 'seller-order-detail',
+        component: () => import('@/views/seller/OrderDetailView.vue'),
+        meta: { title: '订单详情' },
       },
       {
         path: 'customers',

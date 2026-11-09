@@ -5,12 +5,13 @@ import { ElMessage } from 'element-plus'
 import { getCustomerDetail, listCustomers } from '@/api/seller'
 import StatusTag from '@/components/StatusTag.vue'
 import { formatPrice } from '@/utils/format'
+import { normalizeOrder, orderItemsSummary } from '@/utils/shop'
 
 /**
- * S7 客户台账 —— FR-032 / FR-033 / AC-009。
+ * S7 客户台账 —— 挑战 B。
  *
  * 列表仅展示固定字段：用户名、电话、默认交易地点、注册时间；
- * 详情抽屉中展示该客户的购买历史。
+ * 详情抽屉展示该客户的订单历史（订单号、商品清单、金额、状态、下单时间）。
  */
 const loading = ref(true)
 const items = ref([])
@@ -55,7 +56,11 @@ async function openDetail(row) {
   detailLoading.value = true
   detail.value = null
   try {
-    detail.value = await getCustomerDetail(row.id)
+    const data = await getCustomerDetail(row.id)
+    detail.value = {
+      ...data,
+      orders: (data.orders || []).map(normalizeOrder),
+    }
   } catch (error) {
     ElMessage.error(error.message)
     drawer.value = false
@@ -127,34 +132,31 @@ onMounted(load)
           </el-descriptions-item>
         </el-descriptions>
 
-        <h3 class="customer-detail__title">购买历史</h3>
+        <h3 class="customer-detail__title">订单历史</h3>
 
         <el-table :data="detail.orders || []" border>
-          <el-table-column label="商品" min-width="160">
-            <template #default="{ row }">{{ row.product?.name || '—' }}</template>
+          <el-table-column label="订单号" min-width="180">
+            <template #default="{ row }">{{ row.order_no || row.id }}</template>
           </el-table-column>
-          <el-table-column label="金额" width="100">
+          <el-table-column label="商品清单" min-width="180">
+            <template #default="{ row }">{{ orderItemsSummary(row) }}</template>
+          </el-table-column>
+          <el-table-column label="金额" width="110">
             <template #default="{ row }">
-              <span class="price">{{ formatPrice(row.product?.price) }}</span>
+              <span class="price">{{ formatPrice(row.total_amount) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
-              <StatusTag :status="row.status" :label="row.status_label" />
+              <StatusTag :status="row.status" :label="row.statusLabel" />
             </template>
           </el-table-column>
-          <el-table-column prop="queue_position" label="位次" width="70" />
-          <el-table-column prop="created_at" label="提交时间" width="170" />
-          <el-table-column label="交易结果" width="110">
-            <template #default="{ row }">
-              {{ row.transaction?.result_label || '—' }}
-            </template>
-          </el-table-column>
+          <el-table-column prop="created_at" label="下单时间" width="180" />
         </el-table>
 
         <el-empty
           v-if="!(detail.orders || []).length"
-          description="该客户暂无购买记录"
+          description="该客户暂无订单记录"
           :image-size="70"
         />
       </template>

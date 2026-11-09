@@ -15,20 +15,18 @@ const props = defineProps({
 })
 
 const VARIANT_BY_STATUS = {
-  // 商品状态：草稿 / 在售 / 冻结 / 售罄下架 / 手动下架
+  // 商品状态：草稿 / 在售 / 售罄下架 / 手动下架
   DRAFT: 'muted',
   ON_SALE: 'success',
-  FROZEN: 'warning',
   SOLD_OUT: 'danger',
   OFF_SHELF: 'muted',
-  // 意向状态
-  QUEUED: 'primary',
-  REQUEUED: 'primary',
-  IN_TRANSACTION: 'warning',
-  SUCCESS: 'success',
-  FAILED: 'danger',
+  // 订单状态：客户下单 → 商家确认 → 备货完成 → 开始发货 → 交易完成
+  CREATED: 'primary',
+  CONFIRMED: 'primary',
+  PREPARED: 'warning',
+  SHIPPED: 'warning',
+  COMPLETED: 'success',
   CANCELLED: 'muted',
-  VOIDED: 'muted',
 }
 
 const variant = computed(() => VARIANT_BY_STATUS[props.status] || 'muted')

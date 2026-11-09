@@ -1,33 +1,33 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
-import { createIntent } from '@/api/customer'
 import { getProduct } from '@/api/public'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductImage from '@/components/ProductImage.vue'
 import StatusTag from '@/components/StatusTag.vue'
-import { useCustomerStore } from '@/stores/customer'
+import { useShopStore } from '@/stores/shop'
 import { formatPrice } from '@/utils/format'
 import { sanitizeHtml } from '@/utils/sanitize'
 
 /**
- * B2 商品详情 —— FR-019 / FR-020。
+ * B2 商品详情 —— 挑战 B。
  *
- * 浏览免登录；点「我要购买」时未登录先引导登录（AC-007）。
+ * 浏览免登录；游客也能临时收藏 / 加购（登录后自动合并，TBD-12）。
+ * 挑战 A 的「提交购买意向」入口已移除：下单必经购物车（TBD-14）。
  */
 const route = useRoute()
-const router = useRouter()
-const customerStore = useCustomerStore()
+const shopStore = useShopStore()
 
 const loading = ref(true)
-const submitting = ref(false)
 const errorState = ref('')
 const product = ref(null)
-const queueCount = ref(0)
-const canBuy = ref(false)
 const activeImage = ref('')
+
+const isFavorite = ref(false)
+const favoriteLoading = ref(false)
+const cartLoading = ref(false)
 
 const images = computed(() => product.value?.images || [])
 
@@ -35,12 +35,20 @@ const descriptionHtml = computed(() =>
   sanitizeHtml(product.value?.description || ''),
 )
 
-const buyLabel = computed(() => {
-  if (canBuy.value) return '我 要 购 买'
-  if (product.value?.status === 'FROZEN') return '商品交易中'
+const purchasable = computed(
+  () =>
+    product.value?.status === 'ON_SALE' &&
+    Number(product.value?.stock) > 0,
+)
+
+const unavailableLabel = computed(() => {
+  if (purchasable.value) return ''
   if (product.value?.status === 'SOLD_OUT') return '商品已售罄'
   if (product.value?.status === 'OFF_SHELF') return '商品已下架'
-  return '暂不可购买'
+  if (product.value?.status && product.value.status !== 'ON_SALE') {
+    return product.value.status_label || '暂不可购买'
+  }
+  return '商品库存不足'
 })
 
 async function load() {
@@ -48,10 +56,12 @@ async function load() {
   errorState.value = ''
   try {
     const data = await getProduct(route.params.id)
-    product.value = data.product
-    queueCount.value = data.queue_count || 0
-    canBuy.value = Boolean(data.can_buy)
-    activeImage.value = data.product?.primary_image || ''
+    product.value = data.product || data
+    activeImage.value = product.value?.primary_image || ''
+
+    // 游客态也要同步本机临时收藏，否则已收藏的商品会显示成未收藏
+    await shopStore.loadFavoriteIds()
+    isFavorite.value = shopStore.hasFavorite(product.value.id)
   } catch (error) {
     errorState.value = error.message
   } finally {
@@ -59,37 +69,46 @@ async function load() {
   }
 }
 
-async function onBuy() {
-  if (!canBuy.value || submitting.value) return
-
-  if (!customerStore.isLoggedIn) {
-    try {
-      await ElMessageBox.confirm('购买需要先登录，是否前往登录？', '请先登录', {
-        confirmButtonText: '去登录',
-        cancelButtonText: '再逛逛',
-        type: 'info',
-      })
-    } catch {
-      return
-    }
-    router.push({ name: 'customer-login', query: { redirect: route.fullPath } })
+async function onToggleFavorite() {
+  if (!product.value || favoriteLoading.value) return
+  // 只有「在售」商品可以被新收藏；已收藏的仍允许取消
+  if (!isFavorite.value && product.value.status !== 'ON_SALE') {
+    ElMessage.warning('商品已下架，无法收藏')
     return
   }
-
-  submitting.value = true
+  favoriteLoading.value = true
   try {
-    const data = await createIntent(product.value.id)
-    ElMessage.success(data.message || '已进入该商品队列')
-    router.replace({
-      name: 'customer-intent-detail',
-      params: { id: data.intent.id },
-    })
+    const result = await shopStore.toggleFavorite(product.value)
+    isFavorite.value = result.favorited
+    if (result.favorited) {
+      ElMessage.success(
+        result.guest ? '已加入临时收藏，登录后自动合并' : '已加入收藏',
+      )
+    } else {
+      ElMessage.success('已取消收藏')
+    }
   } catch (error) {
     ElMessage.error(error.message)
-    // 409：已下架 / 售罄 / 交易中 / 重复提交 —— 刷新页面状态
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
+async function onAddToCart() {
+  if (!purchasable.value || cartLoading.value) return
+  cartLoading.value = true
+  try {
+    const result = await shopStore.addToCart(product.value, 1)
+    ElMessage.success(
+      result.guest
+        ? '已加入临时购物车，登录后自动合并'
+        : '已加入购物车',
+    )
+  } catch (error) {
+    ElMessage.error(error.message)
     if (error.status === 409) load()
   } finally {
-    submitting.value = false
+    cartLoading.value = false
   }
 }
 
@@ -133,12 +152,15 @@ onMounted(load)
         <p class="summary__price price">{{ formatPrice(product.price) }}</p>
 
         <div class="summary__meta">
-          <span>库存 {{ product.stock }}</span>
-          <span v-if="queueCount > 0">排队 {{ queueCount }} 人</span>
+          <span>剩余可售 {{ product.stock }}</span>
           <span v-if="product.category_name">
             {{ product.parent_category_name }} / {{ product.category_name }}
           </span>
         </div>
+
+        <p v-if="!purchasable" class="summary__unavailable">
+          {{ unavailableLabel }}
+        </p>
       </div>
 
       <section class="description">
@@ -153,12 +175,20 @@ onMounted(load)
 
       <div class="action-bar">
         <button
+          class="action-bar__btn action-bar__btn--outline"
+          type="button"
+          :disabled="favoriteLoading || (!isFavorite && product.status !== 'ON_SALE')"
+          @click="onToggleFavorite"
+        >
+          {{ isFavorite ? '★ 已收藏' : '☆ 收藏' }}
+        </button>
+        <button
           class="action-bar__btn"
           type="button"
-          :disabled="!canBuy || submitting"
-          @click="onBuy"
+          :disabled="!purchasable || cartLoading"
+          @click="onAddToCart"
         >
-          {{ submitting ? '提交中…' : buyLabel }}
+          {{ cartLoading ? '加入中…' : purchasable ? '加入购物车' : unavailableLabel }}
         </button>
       </div>
     </template>
@@ -238,6 +268,12 @@ onMounted(load)
   color: var(--c-text-weak);
 }
 
+.summary__unavailable {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--c-danger);
+}
+
 .description {
   margin-top: var(--sp-3);
   padding: var(--sp-3);
@@ -276,6 +312,8 @@ onMounted(load)
   bottom: 0;
   left: 0;
   z-index: 10;
+  display: flex;
+  gap: var(--sp-2);
   max-width: var(--buyer-max-width);
   margin: 0 auto;
   padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom));
@@ -284,19 +322,34 @@ onMounted(load)
 }
 
 .action-bar__btn {
-  width: 100%;
+  flex: 1;
   min-height: var(--touch-min);
   font-size: var(--fs-base);
   font-weight: 600;
   color: #fff;
   background: var(--c-primary);
-  border: none;
+  border: 1px solid var(--c-primary);
   border-radius: var(--r-btn);
   cursor: pointer;
 }
 
+.action-bar__btn--outline {
+  flex: none;
+  width: 108px;
+  color: var(--c-primary);
+  background: var(--c-surface);
+}
+
 .action-bar__btn:disabled {
+  color: #fff;
   background: var(--c-text-weak);
+  border-color: var(--c-text-weak);
   cursor: not-allowed;
+}
+
+.action-bar__btn--outline:disabled {
+  color: var(--c-text-weak);
+  background: var(--c-surface);
+  border-color: var(--c-border);
 }
 </style>

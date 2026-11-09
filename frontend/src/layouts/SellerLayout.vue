@@ -17,16 +17,15 @@ const navItems = [
   { name: 'seller-products', label: '商品管理', icon: '📦' },
   { name: 'seller-publish', label: '发布商品', icon: '➕' },
   { name: 'seller-categories', label: '类别管理', icon: '🗂️' },
-  { name: 'seller-intents', label: '意向队列', icon: '👥' },
-  { name: 'seller-history', label: '历史商品', icon: '📚' },
-  { name: 'seller-customers', label: '客户台账', icon: '🧾' },
+  { name: 'seller-orders', label: '订单管理', icon: '🧾' },
+  { name: 'seller-customers', label: '客户台账', icon: '👥' },
   { name: 'seller-password', label: '修改密码', icon: '🔑' },
   { name: 'seller-logs', label: '操作日志', icon: '📋' },
 ]
 
 const activeName = computed(() => {
-  // 历史详情页归属「历史商品」高亮
-  if (route.name === 'seller-history-detail') return 'seller-history'
+  // 订单详情页归属「订单管理」高亮
+  if (route.name === 'seller-order-detail') return 'seller-orders'
   return route.name
 })
 

@@ -5,14 +5,17 @@ import { ElMessage } from 'element-plus'
 
 import { login } from '@/api/customer'
 import { useCustomerStore } from '@/stores/customer'
+import { useShopStore } from '@/stores/shop'
 
 /**
- * B3 客户登录 —— FR-018。
- * 游客可浏览；下单、我的意向、历史下单需登录。
+ * B3 客户登录 —— 挑战 B。
+ *
+ * 登录成功后把游客期间的临时收藏 / 临时加购合并进账号（TBD-12）。
  */
 const route = useRoute()
 const router = useRouter()
 const customerStore = useCustomerStore()
+const shopStore = useShopStore()
 
 const formRef = ref()
 const loading = ref(false)
@@ -48,7 +51,13 @@ async function onSubmit() {
   try {
     const data = await login({ username: form.username.trim(), password: form.password })
     customerStore.save(data)
-    ElMessage.success('登录成功')
+    const merged = await shopStore.mergeGuestData()
+    const mergedCount = merged.favorites + merged.cart
+    ElMessage.success(
+      mergedCount
+        ? `登录成功，已合并 ${mergedCount} 件临时收藏 / 购物车商品`
+        : '登录成功',
+    )
     router.replace(safeRedirect(route.query.redirect))
   } catch (error) {
     ElMessage.error(error.message)
@@ -63,7 +72,9 @@ async function onSubmit() {
     <div class="auth-card">
       <header class="auth-card__head">
         <h1 class="auth-card__title">客户登录</h1>
-        <p class="auth-card__subtitle">登录后即可下单、查看意向与历史记录</p>
+        <p class="auth-card__subtitle">
+          登录后即可下单、查看收藏、购物车与订单
+        </p>
       </header>
 
       <el-form

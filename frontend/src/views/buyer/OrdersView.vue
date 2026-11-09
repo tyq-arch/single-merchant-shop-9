@@ -4,67 +4,38 @@ import { ElMessage } from 'element-plus'
 
 import { listOrders } from '@/api/customer'
 import EmptyState from '@/components/EmptyState.vue'
-import IntentCard from '@/components/IntentCard.vue'
+import StatusTag from '@/components/StatusTag.vue'
+import { formatPrice } from '@/utils/format'
+import {
+  ORDER_STATUS_OPTIONS,
+  normalizeOrder,
+  orderItemCount,
+  orderItemsSummary,
+} from '@/utils/shop'
 
 /**
- * B7 历史下单记录 —— FR-031 / AC-008。
- * 只展示已完结记录（SUCCESS / FAILED / VOIDED / SOLD_OUT）。
+ * B7 我的订单 —— 挑战 B。
+ *
+ * 订单 5 态 + 已取消；记录含订单号、商品清单、总金额、下单时间、状态（TBD-09）。
+ * 客户侧只读，取消入口在订单详情页（开始发货前可取消）。
  */
 const loading = ref(true)
 const items = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
-
-const FETCH_PAGE_SIZE = 100
-const FINISHED_STATUSES = ['SUCCESS', 'FAILED', 'VOIDED', 'SOLD_OUT']
-const FINISHED_STATUS_SET = new Set(FINISHED_STATUSES)
-const allItems = ref([])
-
-/** 后端不支持状态过滤，先拉取全部分页，再在前端筛选。 */
-async function fetchAllOrders() {
-  const rows = []
-  let currentPage = 1
-  let expectedTotal = 0
-
-  while (true) {
-    const result = await listOrders({
-      page: currentPage,
-      page_size: FETCH_PAGE_SIZE,
-    })
-    const batch = result.items || []
-    rows.push(...batch)
-    expectedTotal = Number(result.total) || 0
-
-    const batchSize = Number(result.page_size) || FETCH_PAGE_SIZE
-    if (batch.length < batchSize || rows.length >= expectedTotal) {
-      break
-    }
-    currentPage += 1
-  }
-
-  return rows
-}
-
-function applyPage() {
-  const filtered = allItems.value.filter((item) => FINISHED_STATUS_SET.has(item.status))
-
-  total.value = filtered.length
-
-  const maxPage = Math.max(1, Math.ceil(filtered.length / pageSize.value))
-  if (page.value > maxPage) {
-    page.value = maxPage
-  }
-
-  const start = (page.value - 1) * pageSize.value
-  items.value = filtered.slice(start, start + pageSize.value)
-}
+const status = ref('')
 
 async function load() {
   loading.value = true
   try {
-    allItems.value = await fetchAllOrders()
-    applyPage()
+    const result = await listOrders({
+      page: page.value,
+      page_size: pageSize.value,
+      status: status.value || undefined,
+    })
+    items.value = (result.items || []).map(normalizeOrder)
+    total.value = result.total || 0
   } catch (error) {
     ElMessage.error(error.message)
   } finally {
@@ -72,9 +43,14 @@ async function load() {
   }
 }
 
+function onFilterChange() {
+  page.value = 1
+  load()
+}
+
 function onPageChange(nextPage) {
   page.value = nextPage
-  applyPage()
+  load()
 }
 
 onMounted(load)
@@ -83,25 +59,54 @@ onMounted(load)
 <template>
   <div class="orders">
     <div class="orders__bar">
-      <span class="orders__hint">按最近更新时间排序</span>
-      <router-link class="orders__link" to="/my/intents">我的意向 →</router-link>
+      <el-select
+        v-model="status"
+        class="orders__filter"
+        placeholder="全部状态"
+        @change="onFilterChange"
+      >
+        <el-option
+          v-for="option in ORDER_STATUS_OPTIONS"
+          :key="option.value"
+          :label="option.label"
+          :value="option.value"
+        />
+      </el-select>
+      <span class="orders__hint">共 {{ total }} 笔订单</span>
     </div>
 
     <div v-loading="loading" class="orders__body">
       <template v-if="items.length">
-        <IntentCard
-          v-for="item in items"
-          :key="item.id"
-          :intent="item"
-          :to="{ name: 'customer-intent-detail', params: { id: item.id } }"
-        />
+        <router-link
+          v-for="order in items"
+          :key="order.id"
+          :to="{ name: 'customer-order-detail', params: { id: order.id } }"
+          class="order-card"
+        >
+          <div class="order-card__head">
+            <span class="order-card__no">
+              订单号：{{ order.order_no || order.id }}
+            </span>
+            <StatusTag :status="order.status" :label="order.statusLabel" />
+          </div>
+
+          <p class="order-card__items">{{ orderItemsSummary(order) }}</p>
+
+          <div class="order-card__foot">
+            <span class="order-card__time">{{ order.created_at || '—' }}</span>
+            <span class="order-card__amount">
+              共 {{ orderItemCount(order) }} 件 ·
+              <span class="price">{{ formatPrice(order.total_amount) }}</span>
+            </span>
+          </div>
+        </router-link>
       </template>
 
       <EmptyState
         v-else-if="!loading"
         icon="🧾"
-        text="暂无历史下单记录"
-        hint="提交购买意向后，这里会保留完整记录"
+        text="还没有订单"
+        hint="从购物车选件下单后，订单会出现在这里"
       >
         <router-link class="orders__link" to="/">去逛逛</router-link>
       </EmptyState>
@@ -126,11 +131,16 @@ onMounted(load)
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--sp-3);
   margin-bottom: var(--sp-3);
-  font-size: var(--fs-sm);
+}
+
+.orders__filter {
+  width: 150px;
 }
 
 .orders__hint {
+  font-size: var(--fs-sm);
   color: var(--c-text-weak);
 }
 
@@ -138,9 +148,63 @@ onMounted(load)
   min-height: 200px;
 }
 
+.order-card {
+  display: block;
+  padding: var(--sp-3);
+  color: inherit;
+  background: var(--c-surface);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.order-card + .order-card {
+  margin-top: var(--sp-3);
+}
+
+.order-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.order-card__no {
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-text-sub);
+  word-break: break-all;
+}
+
+.order-card__items {
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.order-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+
+.order-card__time {
+  color: var(--c-text-weak);
+}
+
+.order-card__amount {
+  color: var(--c-text-sub);
+}
+
 .orders__pager {
   display: flex;
   justify-content: center;
   margin-top: var(--sp-4);
+}
+
+.orders__link {
+  color: var(--c-primary);
 }
 </style>

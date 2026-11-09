@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { changePassword, getMe, logout } from '@/api/customer'
 import { useCustomerStore } from '@/stores/customer'
+import { useShopStore } from '@/stores/shop'
 import { PASSWORD_MAX, PASSWORD_RULE_TEXT, validateCustomerPassword } from '@/utils/validate'
 
 /**
@@ -13,6 +14,7 @@ import { PASSWORD_MAX, PASSWORD_RULE_TEXT, validateCustomerPassword } from '@/ut
  */
 const router = useRouter()
 const customerStore = useCustomerStore()
+const shopStore = useShopStore()
 
 const loading = ref(true)
 const profile = ref(null)
@@ -107,6 +109,7 @@ async function onLogout() {
     /* 令牌可能已失效，本地照常清场 */
   }
   customerStore.clear()
+  await shopStore.refreshCounts()
   ElMessage.success('已退出登录')
   router.replace('/')
 }
@@ -141,8 +144,9 @@ onMounted(load)
       </div>
 
       <div class="profile__links">
-        <router-link to="/my/intents">我的意向</router-link>
-        <router-link to="/my/orders">历史下单</router-link>
+        <router-link to="/favorites">我的收藏</router-link>
+        <router-link to="/cart">购物车</router-link>
+        <router-link to="/my/orders">我的订单</router-link>
       </div>
 
       <div class="password-card">

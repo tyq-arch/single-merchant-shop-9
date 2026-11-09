@@ -4,14 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import {
-  freezeProduct,
-  getProduct,
   listCategories,
   listProducts,
   offShelf,
   onShelf,
-  startTransaction,
-  unfreezeProduct,
   updateStock,
 } from '@/api/seller'
 import ProductImage from '@/components/ProductImage.vue'
@@ -20,10 +16,10 @@ import { toCascaderOptions } from '@/utils/category'
 import { formatPrice } from '@/utils/format'
 
 /**
- * S2 商品管理 —— FR-001 / FR-005 / FR-006 / FR-011 / FR-039。
+ * S2 商品管理 —— 挑战 B。
  *
- * 商品发布后不可编辑（FR-007），本页只提供：调库存、上下架、冻结/解冻、
- * 与队首进入交易、查看排队名单。
+ * 商品发布后不可编辑（FR-007），本页只提供：调库存、手动上下架。
+ * 挑战 A 的冻结/解冻、进入交易、排队名单入口已移除（X-17/X-19）。
  */
 const route = useRoute()
 const router = useRouter()
@@ -49,7 +45,6 @@ const cascaderProps = {
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   { value: 'ON_SALE', label: '在售' },
-  { value: 'FROZEN', label: '交易中 / 冻结' },
   { value: 'SOLD_OUT', label: '售罄下架' },
   { value: 'OFF_SHELF', label: '手动下架' },
 ]
@@ -148,7 +143,7 @@ async function confirmAction(message, action, fallback) {
 
 function onOffShelf(row) {
   confirmAction(
-    `手动下架「${row.name}」后，排队中的意向将全部作废，确认继续？`,
+    `手动下架「${row.name}」后商品将退出在售，已下单的订单不受影响。确认继续？`,
     () => offShelf(row.id),
     '商品已下架',
   )
@@ -156,39 +151,6 @@ function onOffShelf(row) {
 
 function onOnShelf(row) {
   confirmAction(`确认重新上架「${row.name}」？`, () => onShelf(row.id), '商品已上架')
-}
-
-function onFreeze(row) {
-  confirmAction(
-    `冻结「${row.name}」后将暂停接收新意向，已有队列保留。确认继续？`,
-    () => freezeProduct(row.id),
-    '商品已冻结',
-  )
-}
-
-function onUnfreeze(row) {
-  confirmAction(`确认解冻「${row.name}」并恢复接收意向？`, () => unfreezeProduct(row.id), '商品已解冻')
-}
-
-function onStartTransaction(row) {
-  confirmAction(
-    `将与「${row.name}」队列第一位进入交易，商品自动冻结并停止接收新意向。确认继续？`,
-    async () => {
-      const data = await startTransaction(row.id)
-      await router.push({ name: 'seller-intents', query: { product_id: row.id } })
-      return data
-    },
-    '已进入交易',
-  )
-}
-
-async function goQueue(row) {
-  try {
-    await getProduct(row.id)
-    router.push({ name: 'seller-intents', query: { product_id: row.id } })
-  } catch (error) {
-    ElMessage.error(error.message)
-  }
 }
 
 onMounted(() => {
@@ -264,37 +226,9 @@ onMounted(() => {
 
         <el-table-column prop="published_at" label="发布时间" width="180" />
 
-        <el-table-column label="操作" width="330" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openStock(row)">调库存</el-button>
-            <el-button link type="primary" @click="goQueue(row)">排队名单</el-button>
-
-            <el-button
-              v-if="row.status === 'ON_SALE'"
-              link
-              type="success"
-              @click="onStartTransaction(row)"
-            >
-              进入交易
-            </el-button>
-
-            <el-button
-              v-if="row.status === 'ON_SALE'"
-              link
-              type="warning"
-              @click="onFreeze(row)"
-            >
-              冻结
-            </el-button>
-
-            <el-button
-              v-if="row.status === 'FROZEN'"
-              link
-              type="warning"
-              @click="onUnfreeze(row)"
-            >
-              解冻
-            </el-button>
 
             <el-button
               v-if="row.status === 'OFF_SHELF'"
@@ -306,7 +240,7 @@ onMounted(() => {
             </el-button>
 
             <el-button
-              v-if="row.status !== 'OFF_SHELF' && row.status !== 'FROZEN'"
+              v-else
               link
               type="danger"
               @click="onOffShelf(row)"
@@ -347,7 +281,8 @@ onMounted(() => {
         class="stock-dialog__input"
       />
       <p class="stock-dialog__hint">
-        库存调为 0 将自动售罄下架，并作废全部排队意向；由 0 调为大于 0 会自动恢复在售。
+        库存调为 0 将自动售罄下架并停止接受新订单；已下单的订单不受影响。
+        由 0 调为大于 0 会自动恢复在售。
       </p>
       <template #footer>
         <el-button @click="stockDialog.visible = false">取消</el-button>

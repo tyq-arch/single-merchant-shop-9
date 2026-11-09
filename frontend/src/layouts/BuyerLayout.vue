@@ -1,12 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useCustomerStore } from '@/stores/customer'
+import { useShopStore } from '@/stores/shop'
 
 const route = useRoute()
 const router = useRouter()
 const customerStore = useCustomerStore()
+const shopStore = useShopStore()
+
+onMounted(() => {
+  shopStore.refreshCounts()
+})
 
 /** 首页不显示返回箭头 */
 const showBack = computed(() => route.name !== 'buyer-products')
@@ -32,13 +38,20 @@ function goBack() {
 
       <nav class="buyer-header__nav">
         <template v-if="loggedIn">
-          <router-link to="/my/intents" class="buyer-header__link">我的意向</router-link>
-          <router-link to="/my/orders" class="buyer-header__link">历史</router-link>
+          <router-link to="/favorites" class="buyer-header__link">收藏</router-link>
+          <router-link to="/cart" class="buyer-header__link">
+            购物车<template v-if="shopStore.cartCount">（{{ shopStore.cartCount }}）</template>
+          </router-link>
+          <router-link to="/my/orders" class="buyer-header__link">订单</router-link>
           <router-link to="/my/profile" class="buyer-header__link buyer-header__link--strong">
             {{ customerStore.username || '我的' }}
           </router-link>
         </template>
         <template v-else>
+          <router-link to="/favorites" class="buyer-header__link">收藏</router-link>
+          <router-link to="/cart" class="buyer-header__link">
+            购物车<template v-if="shopStore.cartCount">（{{ shopStore.cartCount }}）</template>
+          </router-link>
           <router-link to="/login" class="buyer-header__link">登录</router-link>
           <router-link to="/register" class="buyer-header__link buyer-header__link--strong">
             注册

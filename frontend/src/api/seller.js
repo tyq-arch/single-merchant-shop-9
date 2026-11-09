@@ -1,5 +1,21 @@
 import http from './http'
 
+/**
+ * 卖家接口 —— 挑战 B。
+ *
+ * 订单接口约定（与后端对接时以本节为准）：
+ *   GET  /seller/orders?page=&page_size=&status=&keyword= → { items, total }
+ *   GET  /seller/orders/{order_id}                         → { order }
+ *   POST /seller/orders/{order_id}/confirm                 → { message, order }
+ *   POST /seller/orders/{order_id}/prepare                 → { message, order }
+ *   POST /seller/orders/{order_id}/ship                    → { message, order }
+ *   POST /seller/orders/{order_id}/complete                → { message, order }
+ *   POST /seller/orders/{order_id}/cancel                  → { message, order }
+ *
+ * 订单状态：CREATED → CONFIRMED → PREPARED → SHIPPED → COMPLETED，
+ * CANCELLED 为终态。状态只能按序推进，前端不自行计算业务规则。
+ */
+
 /* ---------------- 账号 ---------------- */
 
 export function login(payload) {
@@ -62,50 +78,34 @@ export function onShelf(productId) {
   return http.post(`/seller/products/${encodeURIComponent(productId)}/on-shelf`)
 }
 
-export function freezeProduct(productId) {
-  return http.post(`/seller/products/${encodeURIComponent(productId)}/freeze`)
+/* ---------------- 订单 ---------------- */
+
+export function listOrders(params) {
+  return http.get('/seller/orders', { params })
 }
 
-export function unfreezeProduct(productId) {
-  return http.post(`/seller/products/${encodeURIComponent(productId)}/unfreeze`)
+export function getOrder(orderId) {
+  return http.get(`/seller/orders/${encodeURIComponent(orderId)}`)
 }
 
-/** 与队列第一位进入交易，商品自动冻结 */
-export function startTransaction(productId) {
-  return http.post(`/seller/products/${encodeURIComponent(productId)}/start-transaction`)
+const ADVANCE_PATHS = {
+  CONFIRM: 'confirm',
+  PREPARE: 'prepare',
+  SHIP: 'ship',
+  COMPLETE: 'complete',
 }
 
-/* ---------------- 交易与队列 ---------------- */
-
-/**
- * 标记交易结果：
- * SUCCESS: { result: 'SUCCESS', note? }
- * FAILED : { result: 'FAILED', failed_action: 'VOID' | 'REQUEUE', note? }
- */
-export function markTransaction(intentId, payload) {
-  return http.post(`/seller/intents/${encodeURIComponent(intentId)}/transaction`, payload)
+/** 按订单状态机推进一步：CONFIRM / PREPARE / SHIP / COMPLETE */
+export function advanceOrder(orderId, action) {
+  const path = ADVANCE_PATHS[action]
+  if (!path) {
+    return Promise.reject(new Error(`未知的订单推进动作：${action}`))
+  }
+  return http.post(`/seller/orders/${encodeURIComponent(orderId)}/${path}`)
 }
 
-export function listIntents(productId, params) {
-  return http.get(`/seller/products/${encodeURIComponent(productId)}/intents`, { params })
-}
-
-/** 导出队列名单 CSV（Blob） */
-export function exportIntents(productId) {
-  return http.get(`/seller/products/${encodeURIComponent(productId)}/intents/export`, {
-    responseType: 'blob',
-    timeout: 60000,
-  })
-}
-
-/* ---------------- 历史 ---------------- */
-
-export function listHistory(params) {
-  return http.get('/seller/history', { params })
-}
-
-export function getHistoryDetail(productId) {
-  return http.get(`/seller/history/${encodeURIComponent(productId)}`)
+export function cancelOrder(orderId) {
+  return http.post(`/seller/orders/${encodeURIComponent(orderId)}/cancel`)
 }
 
 /* ---------------- 客户台账 ---------------- */
@@ -114,6 +114,7 @@ export function listCustomers(params) {
   return http.get('/seller/customers', { params })
 }
 
+/** 客户详情，含该客户的订单历史 orders[] */
 export function getCustomerDetail(customerId) {
   return http.get(`/seller/customers/${encodeURIComponent(customerId)}`)
 }
