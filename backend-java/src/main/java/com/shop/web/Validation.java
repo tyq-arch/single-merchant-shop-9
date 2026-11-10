@@ -29,6 +29,8 @@ public final class Validation {
     private static final Pattern PASSWORD_LOWER = Pattern.compile("[a-z]");
     private static final Pattern PASSWORD_DIGIT = Pattern.compile("\\d");
     private static final Pattern PASSWORD_SPECIAL = Pattern.compile("[^A-Za-z0-9]");
+    /** 游客匿名会话标识：8~64 位字母、数字、下划线或短横线。 */
+    private static final Pattern GUEST_ID = Pattern.compile("[A-Za-z0-9_-]{8,64}");
 
     private Validation() {
     }
@@ -145,6 +147,48 @@ public final class Validation {
             throw error(location, field, "库存不能为负数");
         }
         return value;
+    }
+
+    /** 购物车数量：默认 1，范围 1~99（TBD-11）。 */
+    public static int quantity(Integer value, String location, String field) {
+        if (value == null) {
+            return 1;
+        }
+        return requiredQuantity(value, location, field);
+    }
+
+    /** 购物车数量：必填，范围 1~99（TBD-11）。 */
+    public static int requiredQuantity(Integer value, String location, String field) {
+        if (value == null) {
+            throw error(location, field, "数量不能为空");
+        }
+        if (value < 1) {
+            throw error(location, field, "数量必须大于 0");
+        }
+        if (value > 99) {
+            throw error(location, field, "单条数量不能超过 99 件");
+        }
+        return value;
+    }
+
+    /** 游客匿名会话标识（未登录临时收藏/加购）。 */
+    public static String guestId(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw error("header", "X-Guest-Id", "未登录临时预选需要提供游客会话标识");
+        }
+        String id = value.trim();
+        if (!GUEST_ID.matcher(id).matches()) {
+            throw error("header", "X-Guest-Id", "游客会话标识格式不正确");
+        }
+        return id;
+    }
+
+    /** 批量商品 ID：不能为空。 */
+    public static List<String> productIds(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            throw error("body", "product_ids", "请至少选择一件商品");
+        }
+        return values;
     }
 
     public static int page(String raw) {

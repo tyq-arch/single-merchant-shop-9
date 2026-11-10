@@ -1,16 +1,17 @@
 package com.shop.services;
 
-import com.shop.db.Jdbc;
-import com.shop.errors.NotFoundException;
-import com.shop.serializers.Serializers;
-import com.shop.util.Utils;
-import org.springframework.stereotype.Service;
-
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.shop.db.Jdbc;
+import com.shop.errors.NotFoundException;
+import com.shop.serializers.Serializers;
+import com.shop.util.Utils;
 
 /**
  * 商家客户台账：固定字段 + 客户历史下单记录（FR-033 ~ FR-036）。
@@ -65,17 +66,22 @@ public class CustomerService {
         Map<String, Object> detail = Serializers.customer(customer, false);
         detail.put("purchase_count", purchaseCount(conn, customerId));
 
+        // 挑战B：客户历史 = 订单（shop_order），含已取消；仅下单时间一个时间戳
         List<Map<String, Object>> rows = Jdbc.query(conn,
-                "SELECT * FROM buy_intent WHERE customer_id = ? "
+                "SELECT * FROM shop_order WHERE customer_id = ? "
                         + "ORDER BY created_at DESC, rowid DESC LIMIT 200", customerId);
         List<Map<String, Object>> orders = new ArrayList<>();
         for (Map<String, Object> row : rows) {
-            Map<String, Object> item = Serializers.intent(row, null);
-            item.put("product", products.fullById(conn, Jdbc.strOf(row, "product_id")));
-            Map<String, Object> trade = Jdbc.queryOne(conn,
-                    "SELECT * FROM trade_record WHERE intent_id = ? "
-                            + "ORDER BY created_at DESC, rowid DESC LIMIT 1", Jdbc.strOf(row, "id"));
-            item.put("transaction", trade == null ? null : Serializers.trade(trade));
+            Map<String, Object> item = Serializers.order(row);
+            List<Map<String, Object>> orderItems = Jdbc.query(conn,
+                    "SELECT * FROM order_item WHERE order_id = ? ORDER BY rowid ASC",
+                    Jdbc.strOf(row, "id"));
+            List<Map<String, Object>> items = new ArrayList<>();
+            for (Map<String, Object> orderItem : orderItems) {
+                items.add(Serializers.orderItem(orderItem));
+            }
+            item.put("items", items);
+            item.put("item_count", items.size());
             orders.add(item);
         }
         detail.put("orders", orders);
@@ -84,8 +90,8 @@ public class CustomerService {
 
     private long purchaseCount(Connection conn, String customerId) throws Exception {
         Long count = Jdbc.scalarLong(conn,
-                "SELECT COUNT(*) AS c FROM buy_intent WHERE customer_id = ? AND status = 'SUCCESS'",
-                customerId);
+                "SELECT COUNT(*) AS c FROM shop_order WHERE customer_id = ? AND status = ?",
+                customerId, com.shop.enums.Enums.OrderStatus.COMPLETED);
         return count == null ? 0L : count;
     }
 }

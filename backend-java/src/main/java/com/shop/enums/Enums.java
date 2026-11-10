@@ -27,14 +27,6 @@ public final class Enums {
         public static final Set<String> HISTORY = Collections.unmodifiableSet(
                 new HashSet<>(Arrays.asList(SOLD_OUT, OFF_SHELF)));
 
-        /**
-         * 买家可见文案：冻结商品对买家展示为「商品交易中」（需求 §3.7）。
-         * 卖家后台仍用 {@link #label(String)} 的「冻结」，两边语义不同，不可合并。
-         */
-        public static String buyerLabel(String status) {
-            return FROZEN.equals(status) ? "商品交易中" : label(status);
-        }
-
         public static String label(String status) {
             if (ON_SALE.equals(status)) {
                 return "在售";
@@ -95,6 +87,73 @@ public final class Enums {
         }
     }
 
+    /** 挑战B 订单状态：5 态 + 已取消。 */
+    public static final class OrderStatus {
+        public static final String CUSTOMER_PLACED = "CUSTOMER_PLACED";
+        public static final String SELLER_CONFIRMED = "SELLER_CONFIRMED";
+        public static final String STOCK_READY = "STOCK_READY";
+        public static final String SHIPPING = "SHIPPING";
+        public static final String COMPLETED = "COMPLETED";
+        public static final String CANCELLED = "CANCELLED";
+
+        /** 客户可取消：尚未到「开始发货」（FR-028）。 */
+        public static final Set<String> CUSTOMER_CANCELLABLE = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(CUSTOMER_PLACED, SELLER_CONFIRMED, STOCK_READY)));
+        /** 商家可取消：交易完成之前（FR-029）。 */
+        public static final Set<String> SELLER_CANCELLABLE = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(CUSTOMER_PLACED, SELLER_CONFIRMED, STOCK_READY, SHIPPING)));
+
+        /**
+         * 状态单向推进（FR-026）：不可跳序、不可回退。
+         *
+         * @return 下一状态；非法或终态返回 null，表示不可推进。
+         */
+        public static String next(String status) {
+            if (CUSTOMER_PLACED.equals(status)) {
+                return SELLER_CONFIRMED;
+            }
+            if (SELLER_CONFIRMED.equals(status)) {
+                return STOCK_READY;
+            }
+            if (STOCK_READY.equals(status)) {
+                return SHIPPING;
+            }
+            if (SHIPPING.equals(status)) {
+                return COMPLETED;
+            }
+            return null;
+        }
+
+        public static String label(String status) {
+            if (CUSTOMER_PLACED.equals(status)) {
+                return "客户下单";
+            }
+            if (SELLER_CONFIRMED.equals(status)) {
+                return "商家确认";
+            }
+            if (STOCK_READY.equals(status)) {
+                return "备货完成";
+            }
+            if (SHIPPING.equals(status)) {
+                return "开始发货";
+            }
+            if (COMPLETED.equals(status)) {
+                return "交易完成";
+            }
+            if (CANCELLED.equals(status)) {
+                return "已取消";
+            }
+            return status;
+        }
+    }
+
+    /** 库存占用状态：占用中 / 已回补 / 已核销。 */
+    public static final class ReservationStatus {
+        public static final String ACTIVE = "ACTIVE";
+        public static final String RELEASED = "RELEASED";
+        public static final String CONSUMED = "CONSUMED";
+    }
+
     /** 交易结果。 */
     public static final class TradeResult {
         public static final String SUCCESS = "SUCCESS";
@@ -127,5 +186,10 @@ public final class Enums {
         public static final String START_TRANSACTION = "START_TRANSACTION";
         public static final String TRANSACTION_SUCCESS = "TRANSACTION_SUCCESS";
         public static final String TRANSACTION_FAILED = "TRANSACTION_FAILED";
+        public static final String CONFIRM_ORDER = "CONFIRM_ORDER";
+        public static final String READY_ORDER = "READY_ORDER";
+        public static final String SHIP_ORDER = "SHIP_ORDER";
+        public static final String COMPLETE_ORDER = "COMPLETE_ORDER";
+        public static final String CANCEL_ORDER = "CANCEL_ORDER";
     }
 }

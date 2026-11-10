@@ -50,17 +50,32 @@ public class ProductService {
     }
 
     public Map<String, Object> full(Connection conn, Map<String, Object> row) throws Exception {
-        return full(conn, row, false);
+        Map<String, Object> item = Serializers.product(row, images(conn, Jdbc.strOf(row, "id")));
+        // 挑战B：展示可售数量（原始库存 - 已下单占用量），而非原始库存
+        item.put("available_stock", availableOf(conn, row));
+        return item;
     }
 
-    /** 买家可见视图：冻结商品状态文案为「商品交易中」（需求 §3.7）。 */
-    public Map<String, Object> publicFull(Connection conn, Map<String, Object> row) throws Exception {
-        return full(conn, row, true);
+    /** 活跃占用总量（挑战B：下单占用、取消回补、完成核销）。 */
+    public int reservedQuantity(Connection conn, String productId) throws Exception {
+        Long reserved = Jdbc.scalarLong(conn,
+                "SELECT COALESCE(SUM(quantity), 0) AS c FROM stock_reservation "
+                        + "WHERE product_id = ? AND status = ?",
+                productId, Enums.ReservationStatus.ACTIVE);
+        return reserved == null ? 0 : reserved.intValue();
     }
 
-    private Map<String, Object> full(Connection conn, Map<String, Object> row, boolean buyerFacing)
-            throws Exception {
-        return Serializers.product(row, images(conn, Jdbc.strOf(row, "id")), buyerFacing);
+    /** 可售数量 = 原始库存 - 活跃占用，下限 0。 */
+    public int availableOf(Connection conn, Map<String, Object> product) throws Exception {
+        if (product == null) {
+            return 0;
+        }
+        int stock = Jdbc.intOf(product, "stock");
+        return Math.max(0, stock - reservedQuantity(conn, Jdbc.strOf(product, "id")));
+    }
+
+    public int availableQuantity(Connection conn, String productId) throws Exception {
+        return availableOf(conn, getProduct(conn, productId));
     }
 
     public Map<String, Object> fullById(Connection conn, String productId) throws Exception {
@@ -74,7 +89,22 @@ public class ProductService {
         StringBuilder where = new StringBuilder("p.status IN ('ON_SALE', 'FROZEN')");
         List<Object> params = new ArrayList<>();
         appendFilters(conn, where, params, keyword, categoryId);
-        return pageOf(conn, where.toString(), params, page, pageSize, true);
+        Map<String, Object> result = pageOf(conn, where.toString(), params, page, pageSize);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        for (Map<String, Object> item : items) {
+            buyerView(item);
+        }
+        return result;
+    }
+
+    /** 买家视图：库存按可售数量展示（FR-012：下单后按剩余库存展示，不按原始库存）。 */
+    public Map<String, Object> buyerView(Map<String, Object> product) {
+        Object available = product.get("available_stock");
+        if (available != null) {
+            product.put("stock", available);
+        }
+        return product;
     }
 
     /** 卖家商品列表。 */
@@ -87,7 +117,7 @@ public class ProductService {
             params.add(status.trim());
         }
         appendFilters(conn, where, params, keyword, categoryId);
-        return pageOf(conn, where.toString(), params, page, pageSize, false);
+        return pageOf(conn, where.toString(), params, page, pageSize);
     }
 
     /** 历史商品：已售罄下架 / 手动下架（FR-012）。 */
@@ -96,10 +126,10 @@ public class ProductService {
         StringBuilder where = new StringBuilder("p.status IN ('SOLD_OUT', 'OFF_SHELF')");
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append(" AND p.name LIKE ? ESCAPE '\\'");
-            params.add(Utils.likePattern(keyword.trim()));
+            where.append(" AND p.name LIKE ?");
+            params.add("%" + keyword.trim() + "%");
         }
-        Map<String, Object> result = pageOf(conn, where.toString(), params, page, pageSize, false);
+        Map<String, Object> result = pageOf(conn, where.toString(), params, page, pageSize);
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         for (Map<String, Object> item : items) {
@@ -346,18 +376,18 @@ public class ProductService {
     }
 
     private Map<String, Object> pageOf(Connection conn, String where, List<Object> params,
-                                       int page, int pageSize, boolean buyerFacing) throws Exception {
+                                       int page, int pageSize) throws Exception {
         Long total = Jdbc.scalarLong(conn,
                 "SELECT COUNT(*) AS c FROM product p WHERE " + where, params.toArray());
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(pageSize);
-        pageParams.add(((long) (page - 1)) * pageSize);
+        pageParams.add((page - 1) * pageSize);
         List<Map<String, Object>> rows = Jdbc.query(conn,
                 SELECT_PRODUCT + "WHERE " + where + " ORDER BY p.published_at DESC, p.rowid DESC LIMIT ? OFFSET ?",
                 pageParams.toArray());
         List<Map<String, Object>> items = new ArrayList<>();
         for (Map<String, Object> row : rows) {
-            items.add(full(conn, row, buyerFacing));
+            items.add(full(conn, row));
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);
@@ -370,8 +400,8 @@ public class ProductService {
     private void appendFilters(Connection conn, StringBuilder where, List<Object> params,
                                String keyword, String categoryId) throws Exception {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append(" AND p.name LIKE ? ESCAPE '\\'");
-            params.add(Utils.likePattern(keyword.trim()));
+            where.append(" AND p.name LIKE ?");
+            params.add("%" + keyword.trim() + "%");
         }
         if (categoryId != null && !categoryId.trim().isEmpty()) {
             Map<String, Object> category = categories.getCategory(conn, categoryId.trim());

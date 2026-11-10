@@ -51,14 +51,12 @@ public class PublicController {
             if (row == null || Enums.ProductStatus.OFF_SHELF.equals(Jdbc.strOf(row, "status"))) {
                 throw new NotFoundException("商品不存在或已下架");
             }
-            Map<String, Object> product = products.publicFull(conn, row);
-            Long queueCount = Jdbc.scalarLong(conn,
-                    "SELECT COUNT(*) AS c FROM queue_item WHERE product_id = ?", productId);
+            Map<String, Object> product = products.full(conn, row);
             Map<String, Object> result = new LinkedHashMap<>();
-            result.put("product", product);
-            result.put("queue_count", queueCount == null ? 0 : queueCount);
+            result.put("product", products.buyerView(product));
+            // 挑战B：可售 = 原始库存 - 已下单占用量；购物车/收藏不占库存
             result.put("can_buy", Enums.ProductStatus.ON_SALE.equals(Jdbc.strOf(row, "status"))
-                    && Jdbc.intOf(row, "stock") > 0);
+                    && products.availableOf(conn, row) > 0);
             return result;
         });
     }

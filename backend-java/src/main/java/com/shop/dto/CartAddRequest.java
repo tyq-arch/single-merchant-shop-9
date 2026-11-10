@@ -2,8 +2,10 @@ package com.shop.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** 提交购买意向请求：客户登录后仅需指定商品。 */
-public class IntentCreateRequest {
+/** 加入购物车请求：同一商品已存在时累加数量。 */
+public class CartAddRequest {
     @JsonProperty("product_id")
     public String productId;
+
+    public Integer quantity;
 }

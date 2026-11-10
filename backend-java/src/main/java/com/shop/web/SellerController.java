@@ -1,22 +1,9 @@
 package com.shop.web;
 
-import com.shop.config.AppConfig;
-import com.shop.db.Db;
-import com.shop.dto.CategoryRequest;
-import com.shop.dto.ChangePasswordRequest;
-import com.shop.dto.ProductCreateRequest;
-import com.shop.dto.SellerLoginRequest;
-import com.shop.dto.StockUpdateRequest;
-import com.shop.dto.TransactionMarkRequest;
-import com.shop.db.Jdbc;
-import com.shop.serializers.Serializers;
-import com.shop.services.AuthService;
-import com.shop.services.CategoryService;
-import com.shop.services.CustomerService;
-import com.shop.services.IntentService;
-import com.shop.services.LogService;
-import com.shop.services.ProductService;
-import com.shop.services.TransactionService;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +18,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import com.shop.config.AppConfig;
+import com.shop.db.Db;
+import com.shop.db.Jdbc;
+import com.shop.dto.CategoryRequest;
+import com.shop.dto.ChangePasswordRequest;
+import com.shop.dto.ProductCreateRequest;
+import com.shop.dto.SellerLoginRequest;
+import com.shop.dto.StockUpdateRequest;
+import com.shop.dto.TransactionMarkRequest;
+import com.shop.serializers.Serializers;
+import com.shop.services.AuthService;
+import com.shop.services.CategoryService;
+import com.shop.services.CustomerService;
+import com.shop.services.IntentService;
+import com.shop.services.LogService;
+import com.shop.services.OrderService;
+import com.shop.services.ProductService;
+import com.shop.services.TransactionService;
 
 /** 卖家接口：登录、类别、多商品与库存、队列交易、历史、客户台账、日志。 */
 @RestController
@@ -47,12 +49,13 @@ public class SellerController {
     private final ProductService products;
     private final IntentService intents;
     private final TransactionService transactions;
+    private final OrderService orders;
     private final CustomerService customers;
     private final LogService logs;
 
     public SellerController(Db db, AppConfig config, AuthService auth, CategoryService categories,
                             ProductService products, IntentService intents, TransactionService transactions,
-                            CustomerService customers, LogService logs) {
+                            OrderService orders, CustomerService customers, LogService logs) {
         this.db = db;
         this.config = config;
         this.auth = auth;
@@ -60,6 +63,7 @@ public class SellerController {
         this.products = products;
         this.intents = intents;
         this.transactions = transactions;
+        this.orders = orders;
         this.customers = customers;
         this.logs = logs;
     }
@@ -286,6 +290,45 @@ public class SellerController {
                         "attachment; filename=\"intents_" + productId + ".csv\"")
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .body(csv);
+    }
+
+    // --------------------------- 订单管理（挑战B：FR-026 / FR-029 / FR-031） ---------------------------
+
+    @GetMapping("/orders")
+    public Map<String, Object> listOrders(@RequestParam(value = "page", required = false) String page,
+                                          @RequestParam(value = "page_size", required = false) String pageSize,
+                                          @RequestParam(value = "status", required = false) String status,
+                                          @RequestParam(value = "keyword", required = false) String keyword,
+                                          @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        int current = Validation.page(page);
+        int size = Validation.pageSize(pageSize, config.getDefaultPageSize(), config.getMaxPageSize());
+        return db.read(conn -> orders.listSeller(conn, current, size, status, keyword));
+    }
+
+    @GetMapping("/orders/{orderId}")
+    public Map<String, Object> orderDetail(@PathVariable String orderId,
+                                           @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("order", db.read(conn -> orders.sellerDetail(conn, orderId)));
+        return result;
+    }
+
+    /** 单向推进：客户下单→商家确认→备货完成→开始发货→交易完成；交易完成时实际扣减库存。 */
+    @PostMapping("/orders/{orderId}/advance")
+    public Map<String, Object> advanceOrder(@PathVariable String orderId,
+                                            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> seller = auth.requireSeller(authorization);
+        return db.transaction(conn -> orders.advance(conn, Jdbc.strOf(seller, "id"), orderId));
+    }
+
+    /** 商家取消：交易完成前可取消，占用库存回补。 */
+    @PostMapping("/orders/{orderId}/cancel")
+    public Map<String, Object> cancelOrder(@PathVariable String orderId,
+                                           @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> seller = auth.requireSeller(authorization);
+        return db.transaction(conn -> orders.cancelBySeller(conn, Jdbc.strOf(seller, "id"), orderId));
     }
 
     // --------------------------- 历史与台账 ---------------------------

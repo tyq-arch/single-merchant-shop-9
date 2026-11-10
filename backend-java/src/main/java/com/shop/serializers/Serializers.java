@@ -25,18 +25,8 @@ public final class Serializers {
         return item;
     }
 
-    /** 卖家侧商品响应。 */
+    /** 商品响应；images 为空时 primary_image 为 null。 */
     public static Map<String, Object> product(Map<String, Object> row, List<Map<String, Object>> images) {
-        return product(row, images, false);
-    }
-
-    /**
-     * 商品响应；images 为空时 primary_image 为 null。
-     *
-     * @param buyerFacing true 时状态文案走买家口径（冻结 → 「商品交易中」）
-     */
-    public static Map<String, Object> product(Map<String, Object> row, List<Map<String, Object>> images,
-                                              boolean buyerFacing) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", Jdbc.strOf(row, "id"));
         item.put("name", Jdbc.strOf(row, "name"));
@@ -45,10 +35,7 @@ public final class Serializers {
         item.put("price_cents", Jdbc.intOf(row, "price_cents"));
         item.put("stock", Jdbc.intOf(row, "stock"));
         item.put("status", Jdbc.strOf(row, "status"));
-        String status = Jdbc.strOf(row, "status");
-        item.put("status_label", buyerFacing
-                ? Enums.ProductStatus.buyerLabel(status)
-                : Enums.ProductStatus.label(status));
+        item.put("status_label", Enums.ProductStatus.label(Jdbc.strOf(row, "status")));
         item.put("category_id", Jdbc.strOf(row, "category_id"));
         item.put("category_name", Jdbc.strOf(row, "category_name"));
         item.put("parent_category_id", Jdbc.strOf(row, "parent_category_id"));
@@ -124,6 +111,66 @@ public final class Serializers {
         item.put("result", Jdbc.strOf(row, "result"));
         item.put("result_label", Enums.TradeResult.label(Jdbc.strOf(row, "result")));
         item.put("note", Jdbc.strOf(row, "note"));
+        item.put("created_at", Jdbc.strOf(row, "created_at"));
+        return item;
+    }
+
+    // --------------------------- 挑战B：收藏 / 购物车 / 订单 ---------------------------
+
+    /** 收藏项；product 由调用方补充。 */
+    public static Map<String, Object> favorite(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("product_id", Jdbc.strOf(row, "product_id"));
+        item.put("created_at", Jdbc.strOf(row, "created_at"));
+        return item;
+    }
+
+    /** 购物车项：展示名称/单价/数量/小计（FR-020）；product 由调用方补充。 */
+    public static Map<String, Object> cartItem(Map<String, Object> row, Integer priceCents) {
+        int quantity = Jdbc.intOf(row, "quantity");
+        Integer subtotalCents = priceCents == null ? null : priceCents * quantity;
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("product_id", Jdbc.strOf(row, "product_id"));
+        item.put("quantity", quantity);
+        item.put("price", Utils.priceFromCents(priceCents));
+        item.put("price_cents", priceCents);
+        item.put("subtotal", Utils.priceFromCents(subtotalCents));
+        item.put("subtotal_cents", subtotalCents);
+        item.put("created_at", Jdbc.strOf(row, "created_at"));
+        item.put("updated_at", Jdbc.strOf(row, "updated_at"));
+        return item;
+    }
+
+    /** 订单项：单价与名称为下单时快照（TBD-09）。 */
+    public static Map<String, Object> orderItem(Map<String, Object> row) {
+        int quantity = Jdbc.intOf(row, "quantity");
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("order_id", Jdbc.strOf(row, "order_id"));
+        item.put("product_id", Jdbc.strOf(row, "product_id"));
+        item.put("product_name", Jdbc.strOf(row, "product_name"));
+        item.put("quantity", quantity);
+        item.put("price", Utils.priceFromCents(Jdbc.integerOrNull(row, "price_cents")));
+        item.put("price_cents", Jdbc.intOf(row, "price_cents"));
+        item.put("subtotal", Utils.priceFromCents(Jdbc.integerOrNull(row, "subtotal_cents")));
+        item.put("subtotal_cents", Jdbc.intOf(row, "subtotal_cents"));
+        return item;
+    }
+
+    /** 订单：订单号、总金额、下单时间、状态/结果（FR-030）；items 由调用方补充。 */
+    public static Map<String, Object> order(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("order_no", Jdbc.strOf(row, "order_no"));
+        item.put("customer_id", Jdbc.strOf(row, "customer_id"));
+        item.put("status", Jdbc.strOf(row, "status"));
+        item.put("status_label", Enums.OrderStatus.label(Jdbc.strOf(row, "status")));
+        item.put("can_cancel", Enums.OrderStatus.CUSTOMER_CANCELLABLE.contains(Jdbc.strOf(row, "status")));
+        item.put("total", Utils.priceFromCents(Jdbc.integerOrNull(row, "total_cents")));
+        item.put("total_cents", Jdbc.intOf(row, "total_cents"));
+        // TBD-09：只提供下单时间一个时间戳，不为各状态单独打点
         item.put("created_at", Jdbc.strOf(row, "created_at"));
         return item;
     }
