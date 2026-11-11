@@ -18,7 +18,7 @@
 ├── 红项用例定义.json            31 条输入的用例定义
 ├── README.md
 └── 证据/
-    ├── challengeB-all-20261111-204633.json    108 条请求 + 完整响应
+    ├── challengeB-all-20261111-230636.json    108 条请求 + 完整响应
     ├── r3-reditem-frontend.json               红项 31 条的前端侧结果
     └── r3-reditem-backend.json                红项 31 条的后端侧结果
 ```
