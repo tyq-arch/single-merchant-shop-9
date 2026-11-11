@@ -1,0 +1,282 @@
+{
+  "run_at": "2026-11-11 19:07:53",
+  "base_pwd": "Seller123!",
+  "seller": [
+    {
+      "id": "S-P01",
+      "desc": "6 位 4 类",
+      "note": "长度不足 8 位",
+      "input": "Ab1!ab",
+      "raw_input_len": 6,
+      "status": 422,
+      "msg": "密码长度不能少于 8 个字符",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码长度不能少于 8 个字符\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码长度不能少于 8 个字符\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P02",
+      "desc": "7 位 4 类",
+      "note": "长度不足 8 位",
+      "input": "Ab1!xyz",
+      "raw_input_len": 7,
+      "status": 422,
+      "msg": "密码长度不能少于 8 个字符",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码长度不能少于 8 个字符\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码长度不能少于 8 个字符\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P03",
+      "desc": "8 位 1 类（纯小写）",
+      "note": "强度不足（仅 1 类）",
+      "input": "abcdefgh",
+      "raw_input_len": 8,
+      "status": 422,
+      "msg": "密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P04",
+      "desc": "8 位 1 类（纯数字）",
+      "note": "强度不足（仅 1 类）",
+      "input": "12345678",
+      "raw_input_len": 8,
+      "status": 422,
+      "msg": "密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P05",
+      "desc": "8 位 2 类（小写+数字）",
+      "note": "强度不足（仅 2 类）",
+      "input": "abcd1234",
+      "raw_input_len": 8,
+      "status": 422,
+      "msg": "密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P06",
+      "desc": "8 位 2 类（大写+数字）",
+      "note": "强度不足（仅 2 类）",
+      "input": "ABCD1234",
+      "raw_input_len": 8,
+      "status": 422,
+      "msg": "密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P07",
+      "desc": "8 位 3 类（大小写+数字）",
+      "note": "合规，应通过",
+      "input": "Abcd1234",
+      "raw_input_len": 8,
+      "status": 200,
+      "msg": "",
+      "raw": "{\"message\":\"密码修改成功\"}"
+    },
+    {
+      "id": "S-P08",
+      "desc": "8 位 4 类",
+      "note": "合规，应通过",
+      "input": "Ab1!abcd",
+      "raw_input_len": 8,
+      "status": 200,
+      "msg": "",
+      "raw": "{\"message\":\"密码修改成功\"}"
+    },
+    {
+      "id": "S-P09",
+      "desc": "10 位 3 类",
+      "note": "合规，应通过",
+      "input": "Abcd123456",
+      "raw_input_len": 10,
+      "status": 200,
+      "msg": "",
+      "raw": "{\"message\":\"密码修改成功\"}"
+    },
+    {
+      "id": "S-P10",
+      "desc": "128 位 3 类（上限）",
+      "note": "合规，应通过",
+      "input": "Ab1!…（共 128 位）",
+      "raw_input_len": 128,
+      "status": 200,
+      "msg": "",
+      "raw": "{\"message\":\"密码修改成功\"}"
+    },
+    {
+      "id": "S-P11",
+      "desc": "129 位 3 类（超限）",
+      "note": "超长，应拒绝",
+      "input": "Ab1!…（共 129 位）",
+      "raw_input_len": 129,
+      "status": 422,
+      "msg": "密码长度不能超过 128 个字符",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码长度不能超过 128 个字符\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码长度不能超过 128 个字符\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P12",
+      "desc": "空字符串",
+      "note": "必填，应拒绝",
+      "input": "",
+      "raw_input_len": 0,
+      "status": 422,
+      "msg": "密码不能为空",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码不能为空\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码不能为空\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-P13",
+      "desc": "中文字符 8 位",
+      "note": "含中文，按 3 类判定",
+      "input": "密码密码1234",
+      "raw_input_len": 8,
+      "status": 422,
+      "msg": "密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"details\":[{\"loc\":[\"body\",\"new_password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"type\":\"value_error\"}]}}"
+    }
+  ],
+  "phone": [
+    {
+      "id": "S-H01",
+      "desc": "11 位手机号（13 开头）",
+      "input": "13800000000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"2a1ca4cae208437299cfd1069901b3c8\",\"username\":\"sh01_d395273\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:54\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H02",
+      "desc": "11 位手机号（19 开头）",
+      "input": "19900000000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"14cbd3dddef64026a59a53c138cdd9e3\",\"username\":\"sh02_d395273\",\"phone\":\"19900000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:54\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H03",
+      "desc": "11 位手机号（15 开头）",
+      "input": "15000000000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"2045e50371c644b9aeb42081dc97839d\",\"username\":\"sh03_d395273\",\"phone\":\"15000000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:54\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H04",
+      "desc": "座机 · 带区号 010",
+      "input": "01012345678",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"adfceb6bc6d548b0bdcd2daa3dfc8962\",\"username\":\"sh04_d395273\",\"phone\":\"01012345678\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:54\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H05",
+      "desc": "座机 · 带区号 021",
+      "input": "02112345678",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"9c34721ce54b4ed2bb03cb9c4b9ee2c9\",\"username\":\"sh05_d395273\",\"phone\":\"02112345678\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H06",
+      "desc": "座机 · 带区号 0755",
+      "input": "07551234567",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"66a70e08aaf74d038c4355fde5e705d2\",\"username\":\"sh06_d395273\",\"phone\":\"07551234567\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H07",
+      "desc": "本地号 8 位",
+      "input": "12345678",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"d2b83d8dc2b74fb4a854848ff056ae28\",\"username\":\"sh07_d395273\",\"phone\":\"12345678\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H08",
+      "desc": "本地号 7 位",
+      "input": "1234567",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"e010713eaeb542e8abf4aca88f3b3eab\",\"username\":\"sh08_d395273\",\"phone\":\"1234567\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H09",
+      "desc": "带连字符",
+      "input": "138-0000-0000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"72762e2d8dac4fe5ab479346353db9e3\",\"username\":\"sh09_d395273\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H10",
+      "desc": "带空格",
+      "input": "138 0000 0000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"453cf5f73db74859b14c58341dada225\",\"username\":\"sh10_d395273\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H11",
+      "desc": "带半角括号",
+      "input": "(138)00000000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"94d147a0eb974479a584ba06bcd7269a\",\"username\":\"sh11_d395273\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H12",
+      "desc": "带 +86 前缀",
+      "input": "+8613800000000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"dd59e424bcc54fe29e1207b0d6523198\",\"username\":\"sh12_d395273\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H13",
+      "desc": "带 86 前缀（无 +）",
+      "input": "8613800000000",
+      "status": 200,
+      "msg": "",
+      "raw": "{\"customer\":{\"id\":\"f5a82dd37932448cab5c3d987ad9cf69\",\"username\":\"sh13_d395273\",\"phone\":\"13800000000\",\"trade_location\":\"测试地点\",\"registered_at\":\"2026-11-11 19:07:55\"},\"message\":\"注册成功，请登录\"}"
+    },
+    {
+      "id": "S-H14",
+      "desc": "5 位短号",
+      "input": "12345",
+      "status": 422,
+      "msg": "联系电话格式不正确",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-H15",
+      "desc": "2 开头 11 位",
+      "input": "23800000000",
+      "status": 422,
+      "msg": "联系电话格式不正确",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-H16",
+      "desc": "含字母",
+      "input": "abcdefghijk",
+      "status": 422,
+      "msg": "联系电话格式不正确",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-H17",
+      "desc": "空字符串",
+      "input": "",
+      "status": 422,
+      "msg": "联系电话不能为空",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话不能为空\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话不能为空\",\"type\":\"value_error\"}]}}"
+    },
+    {
+      "id": "S-H18",
+      "desc": "全空格",
+      "input": "   ",
+      "status": 422,
+      "msg": "联系电话不能为空",
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话不能为空\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话不能为空\",\"type\":\"value_error\"}]}}"
+    }
+  ]
+}

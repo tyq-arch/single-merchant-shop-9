@@ -1,0 +1,1894 @@
+{
+  "base": "http://127.0.0.1:8000",
+  "run_at": "2026-11-11 20:46:33",
+  "version": "bc01eaf",
+  "total": 102,
+  "passed": 100,
+  "results": [
+    {
+      "id": "L01",
+      "module": "商品与搜索",
+      "title": "公开列表只返回在售商品",
+      "expected": "无 FROZEN/OFF_SHELF",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"description\":\"x\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"upda",
+      "result": "PASS",
+      "note": "状态集合 ['ON_SALE']",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L02",
+      "module": "商品与搜索",
+      "title": "冻结商品成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"0644389516c941c19b6d0c45bf2ee194\",\"name\":\"商品F_F401190\",\"description\":\"x\",\"price\":9.0,\"price_cents\":900,\"stock\":5,\"status\":\"FROZEN\",\"status_label\":\"冻结\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"update",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/products/0644389516c941c19b6d0c45bf2ee194/freeze",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "L03",
+      "module": "商品与搜索",
+      "title": "冻结后公开列表查不到",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "note": "total=0",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?keyword=%E5%95%86%E5%93%81F_F401190&page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L04",
+      "module": "商品与搜索",
+      "title": "冻结后卖家后台仍可见",
+      "expected": "包含",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"description\":\"x\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"upda",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/seller/products?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "L05",
+      "module": "商品与搜索",
+      "title": "下架商品成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"2e553f2e148748afb34a6693c5c9f5f8\",\"name\":\"商品G_F401190\",\"description\":\"x\",\"price\":7.0,\"price_cents\":700,\"stock\":5,\"status\":\"OFF_SHELF\",\"status_label\":\"手动下架\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"u",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/products/2e553f2e148748afb34a6693c5c9f5f8/off-shelf",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "L06",
+      "module": "商品与搜索",
+      "title": "下架后公开列表查不到",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "note": "total=0",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?keyword=%E5%95%86%E5%93%81G_F401190&page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L07",
+      "module": "商品与搜索",
+      "title": "按名称搜索能命中",
+      "expected": ">=1",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"description\":\"x\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"upd",
+      "result": "PASS",
+      "note": "total=1",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?keyword=%E5%95%86%E5%93%81A_F401190&page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L08",
+      "module": "商品与搜索",
+      "title": "搜不到时 total=0（前端显示空状态）",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "note": "total=0",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?keyword=ZZ%E4%B8%8D%E5%AD%98%E5%9C%A8ZZ&page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L09",
+      "module": "商品与搜索",
+      "title": "LIKE 通配符 % 应被转义（只匹配字面 %）",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"description\":\"x\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"upda",
+      "result": "FAIL",
+      "note": "total=6",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?keyword=%25&page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L10",
+      "module": "商品与搜索",
+      "title": "LIKE 通配符 _ 应被转义",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"description\":\"x\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"upda",
+      "result": "FAIL",
+      "note": "total=6",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?keyword=_&page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L11",
+      "module": "商品与搜索",
+      "title": "商品详情可访问",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"description\":\"x\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"up",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products/935584e63961471fb2246c7104621216",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "L12",
+      "module": "商品与搜索",
+      "title": "不存在商品详情应 404",
+      "expected": "404",
+      "status": 404,
+      "raw": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"商品不存在或已下架\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products/not-exist-id",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "A01",
+      "module": "收藏",
+      "title": "加收藏成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"favorite\":{\"product_id\":\"935584e63961471fb2246c7104621216\",\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"available_stock\":10,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"primary_image\":null,\"available\":true,\"unavailable_reason\":null},\"available\":true,\"unavailable_reason\":null},\"message\":\"已加入收藏\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/favorites",
+        "body": {
+          "product_id": "935584e63961471fb2246c7104621216"
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A02",
+      "module": "收藏",
+      "title": "重复收藏 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"该商品已在收藏中\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/favorites",
+        "body": {
+          "product_id": "935584e63961471fb2246c7104621216"
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A03",
+      "module": "收藏",
+      "title": "收藏列表 1 条",
+      "expected": "1",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"ec4077d5add3420896c07497851f4edd\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"created_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"available_stock\":10,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"primary_image\":null,\"available\":true,\"unavailable_reason\":nul",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A04",
+      "module": "收藏",
+      "title": "取消收藏成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"message\":\"已取消收藏\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "DELETE",
+        "path": "/api/customer/favorites/935584e63961471fb2246c7104621216",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A05",
+      "module": "收藏",
+      "title": "取消后为空",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A06",
+      "module": "收藏",
+      "title": "收藏不存在商品 404",
+      "expected": "404",
+      "status": 404,
+      "raw": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"商品不存在\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/favorites",
+        "body": {
+          "product_id": "no-such"
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A07",
+      "module": "收藏",
+      "title": "他人收藏不可见",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A08",
+      "module": "收藏",
+      "title": "收藏已下架商品（记录现状）",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"商品已下架，无法收藏\"}}",
+      "result": "PASS",
+      "note": "HTTP 409",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/favorites",
+        "body": {
+          "product_id": "2e553f2e148748afb34a6693c5c9f5f8"
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "A09",
+      "module": "收藏",
+      "title": "再收藏一件成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"favorite\":{\"product_id\":\"ba966538f83a47629a1e4460e79bc274\",\"product\":{\"id\":\"ba966538f83a47629a1e4460e79bc274\",\"name\":\"商品B_F401190\",\"price\":20.0,\"price_cents\":2000,\"stock\":5,\"available_stock\":5,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"primary_image\":null,\"available\":true,\"unavailable_reason\":null},\"available\":true,\"unavailable_reason\":null},\"message\":\"已加入收藏\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/favorites",
+        "body": {
+          "product_id": "ba966538f83a47629a1e4460e79bc274"
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B01",
+      "module": "购物车",
+      "title": "加购成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"a47633d120894e94b65511f2576d617a\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"quantity\":2,\"price\":10.0,\"price_cents\":1000,\"subtotal\":20.0,\"subtotal_cents\":2000,\"created_at\":\"2026-11-11 20:46:31\",\"updated_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"available_stock\":10,\"status\":\"ON_SALE\",\"status_label",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart",
+        "body": {
+          "product_id": "935584e63961471fb2246c7104621216",
+          "quantity": 2
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B02",
+      "module": "购物车",
+      "title": "重复加购合并数量 2+3=5",
+      "expected": "5",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"a47633d120894e94b65511f2576d617a\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"quantity\":5,\"price\":10.0,\"price_cents\":1000,\"subtotal\":50.0,\"subtotal_cents\":5000,\"created_at\":\"2026-11-11 20:46:31\",\"updated_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"available_stock\":10,\"status\":\"ON_SALE\",\"status_label",
+      "result": "PASS",
+      "note": "qty=5",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart",
+        "body": {
+          "product_id": "935584e63961471fb2246c7104621216",
+          "quantity": 3
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B03",
+      "module": "购物车",
+      "title": "改数量为 4",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"a47633d120894e94b65511f2576d617a\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"quantity\":4,\"price\":10.0,\"price_cents\":1000,\"subtotal\":40.0,\"subtotal_cents\":4000,\"created_at\":\"2026-11-11 20:46:31\",\"updated_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"available_stock\":10,\"status\":\"ON_SALE\",\"status_label",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "PATCH",
+        "path": "/api/customer/cart/935584e63961471fb2246c7104621216",
+        "body": {
+          "quantity": 4
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B04",
+      "module": "购物车",
+      "title": "数量 0 → 422（下限 1）",
+      "expected": "422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"数量必须大于 0\",\"details\":[{\"loc\":[\"body\",\"quantity\"],\"msg\":\"数量必须大于 0\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "PATCH",
+        "path": "/api/customer/cart/935584e63961471fb2246c7104621216",
+        "body": {
+          "quantity": 0
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B05",
+      "module": "购物车",
+      "title": "数量 100 → 422（上限 99）",
+      "expected": "422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"单条数量不能超过 99 件\",\"details\":[{\"loc\":[\"body\",\"quantity\"],\"msg\":\"单条数量不能超过 99 件\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "PATCH",
+        "path": "/api/customer/cart/935584e63961471fb2246c7104621216",
+        "body": {
+          "quantity": 100
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B06",
+      "module": "购物车",
+      "title": "数量 99 通过",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"a47633d120894e94b65511f2576d617a\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"quantity\":99,\"price\":10.0,\"price_cents\":1000,\"subtotal\":990.0,\"subtotal_cents\":99000,\"created_at\":\"2026-11-11 20:46:31\",\"updated_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"935584e63961471fb2246c7104621216\",\"name\":\"商品A_F401190\",\"price\":10.0,\"price_cents\":1000,\"stock\":10,\"available_stock\":10,\"status\":\"ON_SALE\",\"status_la",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "PATCH",
+        "path": "/api/customer/cart/935584e63961471fb2246c7104621216",
+        "body": {
+          "quantity": 99
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B07",
+      "module": "购物车",
+      "title": "合并后超 99 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"单条购物车数量不能超过 99 件\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart",
+        "body": {
+          "product_id": "935584e63961471fb2246c7104621216",
+          "quantity": 1
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B08",
+      "module": "购物车",
+      "title": "移除条目成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[],\"item_count\":0,\"total_quantity\":0,\"total\":0.0,\"total_cents\":0,\"message\":\"已从购物车移除\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "DELETE",
+        "path": "/api/customer/cart/935584e63961471fb2246c7104621216",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B09",
+      "module": "购物车",
+      "title": "加购不存在商品 404",
+      "expected": "404",
+      "status": 404,
+      "raw": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"商品不存在\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart",
+        "body": {
+          "product_id": "no-such",
+          "quantity": 1
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B10",
+      "module": "购物车",
+      "title": "他人购物车不可见",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"item_count\":0,\"total_quantity\":0,\"total\":0.0,\"total_cents\":0}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/cart",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "B11",
+      "module": "购物车",
+      "title": "加购已下架商品（记录现状）",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"商品已下架，无法加购\"}}",
+      "result": "PASS",
+      "note": "HTTP 409",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart",
+        "body": {
+          "product_id": "2e553f2e148748afb34a6693c5c9f5f8",
+          "quantity": 1
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "C01",
+      "module": "下单",
+      "title": "两件商品一次下单",
+      "expected": "200 且 2 个订单项",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CUSTOMER_PLACED\",\"status_label\":\"客户下单\",\"can_cancel\":true,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"",
+      "result": "PASS",
+      "note": "订单项 2",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": [
+            "935584e63961471fb2246c7104621216",
+            "ba966538f83a47629a1e4460e79bc274"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "C02",
+      "module": "下单",
+      "title": "订单金额 10×2 + 20×2 = 60",
+      "expected": "60",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CUSTOMER_PLACED\",\"status_label\":\"客户下单\",\"can_cancel\":true,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"",
+      "result": "PASS",
+      "note": "实际 60.0",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": [
+            "935584e63961471fb2246c7104621216",
+            "ba966538f83a47629a1e4460e79bc274"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "C03",
+      "module": "下单",
+      "title": "下单后购物车清空对应条目",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"item_count\":0,\"total_quantity\":0,\"total\":0.0,\"total_cents\":0}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/cart",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "C04",
+      "module": "下单",
+      "title": "空 product_ids → 422",
+      "expected": "422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"请至少选择一件商品\",\"details\":[{\"loc\":[\"body\",\"product_ids\"],\"msg\":\"请至少选择一件商品\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": []
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "C05",
+      "module": "下单",
+      "title": "商品不在购物车 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"以下商品无法下单，请剔除后重试：5543452c140f4695919fee22b7a4245c 不在购物车中\",\"details\":[{\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"name\":\"5543452c140f4695919fee22b7a4245c\",\"quantity\":0,\"available\":0,\"reason\":\"NOT_IN_CART\",\"message\":\"不在购物车中\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": [
+            "5543452c140f4695919fee22b7a4245c"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "C06",
+      "module": "下单",
+      "title": "未登录下单 → 401",
+      "expected": "401",
+      "status": 401,
+      "raw": "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"未登录或凭证缺失\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": [
+            "935584e63961471fb2246c7104621216"
+          ]
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "C07",
+      "module": "下单",
+      "title": "下单不存在商品（记录现状）",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"以下商品无法下单，请剔除后重试：no-such 不在购物车中\",\"details\":[{\"product_id\":\"no-such\",\"name\":\"no-such\",\"quantity\":0,\"available\":0,\"reason\":\"NOT_IN_CART\",\"message\":\"不在购物车中\"}]}}",
+      "result": "PASS",
+      "note": "HTTP 409",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": [
+            "no-such"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "D01",
+      "module": "转收藏",
+      "title": "购物车转收藏成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[],\"item_count\":0,\"total_quantity\":0,\"total\":0.0,\"total_cents\":0,\"message\":\"已将 1 件商品转为收藏\",\"added_to_favorites\":[\"5543452c140f4695919fee22b7a4245c\"],\"moved_count\":1}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart/favorites",
+        "body": {
+          "product_ids": [
+            "5543452c140f4695919fee22b7a4245c"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "D02",
+      "module": "转收藏",
+      "title": "转后原购物车条目移除",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"item_count\":0,\"total_quantity\":0,\"total\":0.0,\"total_cents\":0}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/cart",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "D03",
+      "module": "转收藏",
+      "title": "收藏中出现该商品",
+      "expected": ">=1",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"6bae4a55af344ce9bf9085057eed8418\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"created_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"5543452c140f4695919fee22b7a4245c\",\"name\":\"商品C_F401190\",\"price\":5.0,\"price_cents\":500,\"stock\":3,\"available_stock\":3,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"primary_image\":null,\"available\":true,\"unavailable_reason\":null},\"",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "D04",
+      "module": "转收藏",
+      "title": "转不在购物车的商品 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"以下商品不在购物车中：bc4a94ff17324828aabd51f60d7c3ddb\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart/favorites",
+        "body": {
+          "product_ids": [
+            "bc4a94ff17324828aabd51f60d7c3ddb"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E01",
+      "module": "订单流转",
+      "title": "新订单初始态 CUSTOMER_PLACED",
+      "expected": "CUSTOMER_PLACED",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CUSTOMER_PLACED\",\"status_label\":\"客户下单\",\"can_cancel\":true,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/orders/a7443d3e5a0245388b1a7961e9c8e7ad",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E11",
+      "module": "订单流转",
+      "title": "推进第 1 步 → SELLER_CONFIRMED",
+      "expected": "SELLER_CONFIRMED",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"SELLER_CONFIRMED\",\"status_label\":\"商家确认\",\"can_cancel\":true,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":",
+      "result": "PASS",
+      "note": "实际 SELLER_CONFIRMED",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/a7443d3e5a0245388b1a7961e9c8e7ad/advance",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E12",
+      "module": "订单流转",
+      "title": "推进第 2 步 → STOCK_READY",
+      "expected": "STOCK_READY",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"STOCK_READY\",\"status_label\":\"备货完成\",\"can_cancel\":true,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"商品A_",
+      "result": "PASS",
+      "note": "实际 STOCK_READY",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/a7443d3e5a0245388b1a7961e9c8e7ad/advance",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E13",
+      "module": "订单流转",
+      "title": "推进第 3 步 → SHIPPING",
+      "expected": "SHIPPING",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"SHIPPING\",\"status_label\":\"开始发货\",\"can_cancel\":false,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"商品A_F4",
+      "result": "PASS",
+      "note": "实际 SHIPPING",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/a7443d3e5a0245388b1a7961e9c8e7ad/advance",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E14",
+      "module": "订单流转",
+      "title": "推进第 4 步 → COMPLETED",
+      "expected": "COMPLETED",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"COMPLETED\",\"status_label\":\"交易完成\",\"can_cancel\":false,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"商品A_F",
+      "result": "PASS",
+      "note": "实际 COMPLETED",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/a7443d3e5a0245388b1a7961e9c8e7ad/advance",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E20",
+      "module": "订单流转",
+      "title": "已完成再推进 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"订单已「交易完成」，无法继续推进\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/a7443d3e5a0245388b1a7961e9c8e7ad/advance",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "E21",
+      "module": "订单流转",
+      "title": "已完成客户取消 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"订单已「交易完成」，客户无法取消\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders/a7443d3e5a0245388b1a7961e9c8e7ad/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F11",
+      "module": "取消",
+      "title": "客户在第 1 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"1e2229a717464a44a289ec7dccaac4c5\",\"order_no\":\"20261111-0002\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"8e4ff527bfd94f30b6fd7decdb817690\",\"order_id\":\"1e2229a717464a44a289ec7dccaac4c5\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders/1e2229a717464a44a289ec7dccaac4c5/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F12",
+      "module": "取消",
+      "title": "客户在第 2 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"e6812af760d14c31b91ff31fd6d33435\",\"order_no\":\"20261111-0003\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"44b999ba1ebe47fbb5297d64157b7dfd\",\"order_id\":\"e6812af760d14c31b91ff31fd6d33435\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders/e6812af760d14c31b91ff31fd6d33435/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F13",
+      "module": "取消",
+      "title": "客户在第 3 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"d18c296a89f54269a7bc95a20b826153\",\"order_no\":\"20261111-0004\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"5db1b85131e54fd6ba8e771009aeb93c\",\"order_id\":\"d18c296a89f54269a7bc95a20b826153\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders/d18c296a89f54269a7bc95a20b826153/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F21",
+      "module": "取消",
+      "title": "商家在第 1 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"424d63bb83a54e85976d0d1480fad468\",\"order_no\":\"20261111-0005\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"bca172138fc5462881901f9dfe382207\",\"order_id\":\"424d63bb83a54e85976d0d1480fad468\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/424d63bb83a54e85976d0d1480fad468/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F22",
+      "module": "取消",
+      "title": "商家在第 2 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"d82acb9ec7a24aa0b9ec0b8c5361287c\",\"order_no\":\"20261111-0006\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"7e524d7d438e43c9ae86ba915b0597fd\",\"order_id\":\"d82acb9ec7a24aa0b9ec0b8c5361287c\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/d82acb9ec7a24aa0b9ec0b8c5361287c/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F23",
+      "module": "取消",
+      "title": "商家在第 3 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"18c19880a0074f33a19c6f7e13d27b4a\",\"order_no\":\"20261111-0007\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"bc89e3b15dff45918ac8857ee49b45fe\",\"order_id\":\"18c19880a0074f33a19c6f7e13d27b4a\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/18c19880a0074f33a19c6f7e13d27b4a/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F24",
+      "module": "取消",
+      "title": "商家在第 4 态可取消",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"4ca582e57bef416bb34063ef3e40291b\",\"order_no\":\"20261111-0008\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"CANCELLED\",\"status_label\":\"已取消\",\"can_cancel\":false,\"total\":5.0,\"total_cents\":500,\"created_at\":\"2026-11-11 20:46:32\",\"items\":[{\"id\":\"b028d61674194fabb88873b1d556112e\",\"order_id\":\"4ca582e57bef416bb34063ef3e40291b\",\"product_id\":\"5543452c140f4695919fee22b7a4245c\",\"product_name\":\"商品C_F401",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/4ca582e57bef416bb34063ef3e40291b/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F31",
+      "module": "取消",
+      "title": "已发货后客户取消 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"订单已「开始发货」，客户无法取消\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders/0f4a29b552674124a91de72b657bcb79/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F32",
+      "module": "取消",
+      "title": "重复取消 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"订单已「开始发货」，客户无法取消\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders/0f4a29b552674124a91de72b657bcb79/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "F33",
+      "module": "取消",
+      "title": "已完成后商家取消 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"订单已「交易完成」，商家无法取消（交易完成/已取消后不可取消）\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/orders/a5f2d9aeadc74f90bd640c74bb970d0f/cancel",
+        "body": {},
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "G01",
+      "module": "库存",
+      "title": "下单占用：2 → 0",
+      "expected": "减 2",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"98b9263e112d4e29aa0e40f6c60624a6\",\"name\":\"商品D_F401190\",\"description\":\"x\",\"price\":8.0,\"price_cents\":800,\"stock\":0,\"status\":\"SOLD_OUT\",\"status_label\":\"售罄下架\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"up",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products/98b9263e112d4e29aa0e40f6c60624a6",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "G02",
+      "module": "库存",
+      "title": "取消回补：回到 2",
+      "expected": "2",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"98b9263e112d4e29aa0e40f6c60624a6\",\"name\":\"商品D_F401190\",\"description\":\"x\",\"price\":8.0,\"price_cents\":800,\"stock\":2,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"updat",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products/98b9263e112d4e29aa0e40f6c60624a6",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "G03",
+      "module": "库存",
+      "title": "完成扣减：不重复扣，仍为 0",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"product\":{\"id\":\"98b9263e112d4e29aa0e40f6c60624a6\",\"name\":\"商品D_F401190\",\"description\":\"x\",\"price\":8.0,\"price_cents\":800,\"stock\":0,\"status\":\"SOLD_OUT\",\"status_label\":\"售罄下架\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"up",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products/98b9263e112d4e29aa0e40f6c60624a6",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "G04",
+      "module": "库存",
+      "title": "库存不足下单 → 409 + shortages 明细",
+      "expected": "409 + details",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"以下商品无法下单，请剔除后重试：商品H_F401190（库存不足：需 10 件，可售 4 件，请剔除或调减数量）\",\"details\":[{\"product_id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"quantity\":10,\"available\":4,\"reason\":\"INSUFFICIENT\",\"message\":\"库存不足：需 10 件，可售 4 件\"}]}}",
+      "result": "PASS",
+      "note": "details 1 项",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/orders",
+        "body": {
+          "product_ids": [
+            "c140e90b632c4e99aed09305d0c4cb93"
+          ]
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "G05",
+      "module": "库存",
+      "title": "加购允许超库存（购物车不锁库存）",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"7224396d61f24819aaa63423b65877a5\",\"product_id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"quantity\":11,\"price\":30.0,\"price_cents\":3000,\"subtotal\":330.0,\"subtotal_cents\":33000,\"created_at\":\"2026-11-11 20:46:33\",\"updated_at\":\"2026-11-11 20:46:33\",\"product\":{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"available_stock\":4,\"status\":\"ON_SALE\",\"status_labe",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/cart",
+        "body": {
+          "product_id": "c140e90b632c4e99aed09305d0c4cb93",
+          "quantity": 1
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H01",
+      "module": "查询台账",
+      "title": "客户订单列表可读",
+      "expected": ">=1",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"baf8a8979c6442018f19e7ef15548cb5\",\"order_no\":\"20261111-0012\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"COMPLETED\",\"status_label\":\"交易完成\",\"can_cancel\":false,\"total\":16.0,\"total_cents\":1600,\"created_at\":\"2026-11-11 20:46:33\",\"items\":[{\"id\":\"f422c89f565f4ba29a2eaee7cf487186\",\"order_id\":\"baf8a8979c6442018f19e7ef15548cb5\",\"product_id\":\"98b9263e112d4e29aa0e40f6c60624a6\",\"product_name\":\"商品D_",
+      "result": "PASS",
+      "note": "12 单",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/orders?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H02",
+      "module": "查询台账",
+      "title": "按状态筛选 COMPLETED",
+      "expected": "全部 COMPLETED",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"baf8a8979c6442018f19e7ef15548cb5\",\"order_no\":\"20261111-0012\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"COMPLETED\",\"status_label\":\"交易完成\",\"can_cancel\":false,\"total\":16.0,\"total_cents\":1600,\"created_at\":\"2026-11-11 20:46:33\",\"items\":[{\"id\":\"f422c89f565f4ba29a2eaee7cf487186\",\"order_id\":\"baf8a8979c6442018f19e7ef15548cb5\",\"product_id\":\"98b9263e112d4e29aa0e40f6c60624a6\",\"product_name\":\"商品D_",
+      "result": "PASS",
+      "note": "3 单",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/orders?status=COMPLETED&page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H03",
+      "module": "查询台账",
+      "title": "他人订单详情 → 404",
+      "expected": "404",
+      "status": 404,
+      "raw": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"订单不存在\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/orders/a7443d3e5a0245388b1a7961e9c8e7ad",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H04",
+      "module": "查询台账",
+      "title": "商家订单列表可读",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"baf8a8979c6442018f19e7ef15548cb5\",\"order_no\":\"20261111-0012\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"COMPLETED\",\"status_label\":\"交易完成\",\"can_cancel\":false,\"total\":16.0,\"total_cents\":1600,\"created_at\":\"2026-11-11 20:46:33\",\"customer\":{\"id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"username\":\"u1_F401190\",\"phone\":\"13800000000\",\"trade_location\":\"测试\"},\"items\":[{\"id\":\"f422c89f565f4ba29a2eaee7cf4",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/seller/orders?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H05",
+      "module": "查询台账",
+      "title": "商家订单详情可读",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"order\":{\"id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"order_no\":\"20261111-0001\",\"customer_id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"status\":\"COMPLETED\",\"status_label\":\"交易完成\",\"can_cancel\":false,\"total\":60.0,\"total_cents\":6000,\"created_at\":\"2026-11-11 20:46:31\",\"items\":[{\"id\":\"f4482fb05d2d46e8b34621c0b7b18166\",\"order_id\":\"a7443d3e5a0245388b1a7961e9c8e7ad\",\"product_id\":\"935584e63961471fb2246c7104621216\",\"product_name\":\"商品A_F",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/seller/orders/a7443d3e5a0245388b1a7961e9c8e7ad",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H06",
+      "module": "查询台账",
+      "title": "客户台账可读",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"04b211e541854b9aa0d4c6fa56c5948d\",\"username\":\"u3_F401190\",\"phone\":\"13800000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-11-11 20:46:31\",\"purchase_count\":0},{\"id\":\"565fb5b2adca405b8523683b4338e8d6\",\"username\":\"u2_F401190\",\"phone\":\"13800000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-11-11 20:46:30\",\"purchase_count\":0},{\"id\":\"b9febafc716a4d78bc6c39c2223bfe6e\",\"username\":\"u1_F401190\",\"phone\":\"13",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/seller/customers?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H07",
+      "module": "查询台账",
+      "title": "商家历史可读",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"2e553f2e148748afb34a6693c5c9f5f8\",\"name\":\"商品G_F401190\",\"description\":\"x\",\"price\":7.0,\"price_cents\":700,\"stock\":5,\"status\":\"OFF_SHELF\",\"status_label\":\"手动下架\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"up",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/seller/history?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "H08",
+      "module": "查询台账",
+      "title": "不存在客户 → 404",
+      "expected": "404",
+      "status": 404,
+      "raw": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"客户不存在\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/seller/customers/no-such",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "I01",
+      "module": "游客会话",
+      "title": "游客加购成功",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"267fd67200b8481c9120ae9c111fb085\",\"product_id\":\"bc4a94ff17324828aabd51f60d7c3ddb\",\"quantity\":1,\"price\":15.0,\"price_cents\":1500,\"subtotal\":15.0,\"subtotal_cents\":1500,\"created_at\":\"2026-11-11 20:46:33\",\"updated_at\":\"2026-11-11 20:46:33\",\"product\":{\"id\":\"bc4a94ff17324828aabd51f60d7c3ddb\",\"name\":\"商品E_F401190\",\"price\":15.0,\"price_cents\":1500,\"stock\":100,\"available_stock\":100,\"status\":\"ON_SALE\",\"status_lab",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/guest/cart",
+        "body": {
+          "product_id": "bc4a94ff17324828aabd51f60d7c3ddb",
+          "quantity": 1
+        },
+        "auth": false,
+        "guest": "f1-F401190"
+      }
+    },
+    {
+      "id": "I02",
+      "module": "游客会话",
+      "title": "游客能读到自己购物车",
+      "expected": "1",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"267fd67200b8481c9120ae9c111fb085\",\"product_id\":\"bc4a94ff17324828aabd51f60d7c3ddb\",\"quantity\":1,\"price\":15.0,\"price_cents\":1500,\"subtotal\":15.0,\"subtotal_cents\":1500,\"created_at\":\"2026-11-11 20:46:33\",\"updated_at\":\"2026-11-11 20:46:33\",\"product\":{\"id\":\"bc4a94ff17324828aabd51f60d7c3ddb\",\"name\":\"商品E_F401190\",\"price\":15.0,\"price_cents\":1500,\"stock\":100,\"available_stock\":100,\"status\":\"ON_SALE\",\"status_lab",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/guest/cart",
+        "body": null,
+        "auth": false,
+        "guest": "f1-F401190"
+      }
+    },
+    {
+      "id": "I03",
+      "module": "游客会话",
+      "title": "另一游客看不到（隔离）",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"item_count\":0,\"total_quantity\":0,\"total\":0.0,\"total_cents\":0}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/guest/cart",
+        "body": null,
+        "auth": false,
+        "guest": "f2-F401190"
+      }
+    },
+    {
+      "id": "I04",
+      "module": "游客会话",
+      "title": "游客可收藏",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"favorite\":{\"product_id\":\"bc4a94ff17324828aabd51f60d7c3ddb\",\"product\":{\"id\":\"bc4a94ff17324828aabd51f60d7c3ddb\",\"name\":\"商品E_F401190\",\"price\":15.0,\"price_cents\":1500,\"stock\":100,\"available_stock\":100,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"primary_image\":null,\"available\":true,\"unavailable_reason\":null},\"available\":true,\"unavailable_reason\":null},\"message\":\"已加入收藏\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/guest/favorites",
+        "body": {
+          "product_id": "bc4a94ff17324828aabd51f60d7c3ddb"
+        },
+        "auth": false,
+        "guest": "f1-F401190"
+      }
+    },
+    {
+      "id": "I05",
+      "module": "游客会话",
+      "title": "游客收藏不混入客户收藏",
+      "expected": "0",
+      "status": 200,
+      "raw": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":100}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "I06",
+      "module": "游客会话",
+      "title": "游客不能下单 → 401",
+      "expected": "401",
+      "status": 401,
+      "raw": "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"下单必须登录，请先注册或登录\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/guest/orders",
+        "body": {
+          "product_ids": [
+            "bc4a94ff17324828aabd51f60d7c3ddb"
+          ]
+        },
+        "auth": false,
+        "guest": "f1-F401190"
+      }
+    },
+    {
+      "id": "I07",
+      "module": "游客会话",
+      "title": "缺 X-Guest-Id 查购物车 → 422",
+      "expected": "422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"未登录临时预选需要提供游客会话标识\",\"details\":[{\"loc\":[\"header\",\"X-Guest-Id\"],\"msg\":\"未登录临时预选需要提供游客会话标识\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/guest/cart",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "J01",
+      "module": "上限分页",
+      "title": "收藏 page_size=100 可用（原来 422）",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"d2842eb87672422abb7ec9ef698609db\",\"product_id\":\"ba966538f83a47629a1e4460e79bc274\",\"created_at\":\"2026-11-11 20:46:31\",\"product\":{\"id\":\"ba966538f83a47629a1e4460e79bc274\",\"name\":\"商品B_F401190\",\"price\":20.0,\"price_cents\":2000,\"stock\":3,\"available_stock\":3,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"primary_image\":null,\"available\":true,\"unavailable_reason\":null}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=100",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "J02",
+      "module": "上限分页",
+      "title": "page_size=101 → 422",
+      "expected": "422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page_size 必须在 1 到 100 之间\",\"details\":[{\"loc\":[\"query\",\"page_size\"],\"msg\":\"page_size 必须在 1 到 100 之间\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/favorites?page_size=101",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "J03",
+      "module": "上限分页",
+      "title": "购物车条目数 ≤ 50",
+      "expected": "<=50",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"7224396d61f24819aaa63423b65877a5\",\"product_id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"quantity\":11,\"price\":30.0,\"price_cents\":3000,\"subtotal\":330.0,\"subtotal_cents\":33000,\"created_at\":\"2026-11-11 20:46:33\",\"updated_at\":\"2026-11-11 20:46:33\",\"product\":{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"available_stock\":4,\"status\":\"ON_SALE\",\"status_labe",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/customer/cart",
+        "body": null,
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "J04",
+      "module": "上限分页",
+      "title": "商品列表 page_size=100 可用",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"items\":[{\"id\":\"c140e90b632c4e99aed09305d0c4cb93\",\"name\":\"商品H_F401190\",\"description\":\"x\",\"price\":30.0,\"price_cents\":3000,\"stock\":4,\"status\":\"ON_SALE\",\"status_label\":\"在售\",\"category_id\":\"e38297d75e1a427c976ac82adc70a0e2\",\"category_name\":\"全量小类F401190\",\"parent_category_id\":\"f707ce8c56d548948e59220e0f16522f\",\"parent_category_name\":\"全量大类F401190\",\"published_at\":\"2026-11-11 20:46:30\",\"created_at\":\"2026-11-11 20:46:30\",\"upda",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?page_size=100",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M01",
+      "module": "基础校验",
+      "title": "注册密码 'pass1234'",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"details\":[{\"loc\":[\"body\",\"password\"],\"msg\":\"密码强度不足：至少包含大写字母、小写字母、数字、特殊字符中的 3 类\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mM01_F401190",
+          "password": "pass1234",
+          "phone": "13800000000",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M02",
+      "module": "基础校验",
+      "title": "注册密码 'Ab1!ab'",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"密码长度不能少于 8 个字符\",\"details\":[{\"loc\":[\"body\",\"password\"],\"msg\":\"密码长度不能少于 8 个字符\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mM02_F401190",
+          "password": "Ab1!ab",
+          "phone": "13800000000",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M03",
+      "module": "基础校验",
+      "title": "注册密码 'Abcd1234'",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"14511b980cce41dc93758a467ba5f08a\",\"username\":\"mM03_F401190\",\"phone\":\"13800000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-11-11 20:46:33\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mM03_F401190",
+          "password": "Abcd1234",
+          "phone": "13800000000",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M04",
+      "module": "基础校验",
+      "title": "注册密码 'Pass1234!'",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"5279b71aa38c412c8d6393e13f7f34ed\",\"username\":\"mM04_F401190\",\"phone\":\"13800000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-11-11 20:46:33\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mM04_F401190",
+          "password": "Pass1234!",
+          "phone": "13800000000",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M05",
+      "module": "基础校验",
+      "title": "注册电话 '13800000000'",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"7c0463a462d141c68828e8968fc7cd15\",\"username\":\"mpM05_F401190\",\"phone\":\"13800000000\",\"trade_location\":\"测试\",\"registered_at\":\"2026-11-11 20:46:33\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mpM05_F401190",
+          "password": "Pass1234!",
+          "phone": "13800000000",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M06",
+      "module": "基础校验",
+      "title": "注册电话 '01012345678'",
+      "expected": "HTTP 200",
+      "status": 200,
+      "raw": "{\"customer\":{\"id\":\"448fb4878dbd40e09300f2082e8678b1\",\"username\":\"mpM06_F401190\",\"phone\":\"01012345678\",\"trade_location\":\"测试\",\"registered_at\":\"2026-11-11 20:46:33\"},\"message\":\"注册成功，请登录\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mpM06_F401190",
+          "password": "Pass1234!",
+          "phone": "01012345678",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M07",
+      "module": "基础校验",
+      "title": "注册电话 '12345'",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"联系电话格式不正确\",\"details\":[{\"loc\":[\"body\",\"phone\"],\"msg\":\"联系电话格式不正确\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "mpM07_F401190",
+          "password": "Pass1234!",
+          "phone": "12345",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M08",
+      "module": "基础校验",
+      "title": "重复用户名 → 409",
+      "expected": "409",
+      "status": 409,
+      "raw": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"用户名已被注册\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/register",
+        "body": {
+          "username": "u1_F401190",
+          "password": "Pass1234!",
+          "phone": "13800000000",
+          "trade_location": "测试"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M09",
+      "module": "基础校验",
+      "title": "错误密码登录 → 401",
+      "expected": "401",
+      "status": 401,
+      "raw": "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"用户名或密码错误\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/customer/login",
+        "body": {
+          "username": "u1_F401190",
+          "password": "Bad12345!"
+        },
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M10",
+      "module": "基础校验",
+      "title": "价格 0",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格必须大于 0\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格必须大于 0\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "mpM10_F401190",
+          "price": 0,
+          "description": "x",
+          "stock": 1,
+          "category_id": "e38297d75e1a427c976ac82adc70a0e2",
+          "image_urls": []
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "M11",
+      "module": "基础校验",
+      "title": "价格 -5",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格必须大于 0\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格必须大于 0\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "mpM11_F401190",
+          "price": -5,
+          "description": "x",
+          "stock": 1,
+          "category_id": "e38297d75e1a427c976ac82adc70a0e2",
+          "image_urls": []
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "M12",
+      "module": "基础校验",
+      "title": "价格 9999999.01",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"价格不能超过 9999999\",\"details\":[{\"loc\":[\"body\",\"price\"],\"msg\":\"价格不能超过 9999999\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "mpM12_F401190",
+          "price": 9999999.01,
+          "description": "x",
+          "stock": 1,
+          "category_id": "e38297d75e1a427c976ac82adc70a0e2",
+          "image_urls": []
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "M13",
+      "module": "基础校验",
+      "title": "page=0",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page 必须大于等于 1\",\"details\":[{\"loc\":[\"query\",\"page\"],\"msg\":\"page 必须大于等于 1\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?page=0",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M14",
+      "module": "基础校验",
+      "title": "page_size=101",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page_size 必须在 1 到 100 之间\",\"details\":[{\"loc\":[\"query\",\"page_size\"],\"msg\":\"page_size 必须在 1 到 100 之间\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?page_size=101",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M15",
+      "module": "基础校验",
+      "title": "page=abc",
+      "expected": "HTTP 422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"page 必须为整数\",\"details\":[{\"loc\":[\"query\",\"page\"],\"msg\":\"page 必须为整数\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "GET",
+        "path": "/api/products?page=abc",
+        "body": null,
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M16",
+      "module": "基础校验",
+      "title": "发布不选类别 → 422",
+      "expected": "422",
+      "status": 422,
+      "raw": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"商品必须选择二级类别\",\"details\":[{\"loc\":[\"body\",\"category_id\"],\"msg\":\"商品必须选择二级类别\",\"type\":\"value_error\"}]}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/seller/products",
+        "body": {
+          "name": "m16_F401190",
+          "price": 10.0,
+          "description": "x",
+          "stock": 1,
+          "image_urls": []
+        },
+        "auth": true,
+        "guest": null
+      }
+    },
+    {
+      "id": "M17",
+      "module": "基础校验",
+      "title": "未带 token 上传 → 401",
+      "expected": "401",
+      "status": 401,
+      "raw": "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"未登录或凭证缺失\"}}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/files/images",
+        "body": "(binary)",
+        "auth": false,
+        "guest": null
+      }
+    },
+    {
+      "id": "M18",
+      "module": "基础校验",
+      "title": "带卖家 token 上传 → 200",
+      "expected": "200",
+      "status": 200,
+      "raw": "{\"url\":\"/uploads/da8ec3191d464a7e9225dd8b28acb285.png\",\"original_name\":\"t.png\",\"size\":40,\"media_type\":\"image\"}",
+      "result": "PASS",
+      "note": "",
+      "req": {
+        "method": "POST",
+        "path": "/api/files/images",
+        "body": "(binary)",
+        "auth": true,
+        "guest": null
+      }
+    }
+  ]
+}
