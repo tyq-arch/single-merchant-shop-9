@@ -86,7 +86,9 @@ public class ProductService {
     /** 公开列表：仅展示在售与交易中商品，支持关键词与类别筛选（FR-010 / FR-019）。 */
     public Map<String, Object> listPublic(Connection conn, int page, int pageSize,
                                           String keyword, String categoryId) throws Exception {
-        StringBuilder where = new StringBuilder("p.status IN ('ON_SALE', 'FROZEN')");
+        // 挑战 B 只有「在售 / 售罄 / 下架」三态，买家列表仅展示在售商品；
+        // FROZEN 是挑战 A 的「交易中冻结」残留，不对买家暴露。
+        StringBuilder where = new StringBuilder("p.status = 'ON_SALE'");
         List<Object> params = new ArrayList<>();
         appendFilters(conn, where, params, keyword, categoryId);
         Map<String, Object> result = pageOf(conn, where.toString(), params, page, pageSize);

@@ -77,7 +77,7 @@ async function onAdvance() {
 
   acting.value = true
   try {
-    const data = await advanceOrder(order.value.id, nextAction.value.action)
+    const data = await advanceOrder(order.value.id)
     ElMessage.success(data?.message || `已推进到${targetLabel}`)
     await load()
   } catch (error) {
@@ -88,17 +88,9 @@ async function onAdvance() {
   }
 }
 
+/** 商家取消（FR-029）：TBD-07 明确「即时生效、无需原因、无二次确认」 */
 async function onCancel() {
   if (!order.value || acting.value) return
-  try {
-    await ElMessageBox.confirm(
-      '取消后订单不可恢复，占用库存会回补。确认取消该订单？',
-      '取消订单',
-      { confirmButtonText: '确认取消', cancelButtonText: '再想想', type: 'warning' },
-    )
-  } catch {
-    return
-  }
 
   acting.value = true
   try {
@@ -189,7 +181,7 @@ onMounted(load)
             :title="step.label"
           />
         </el-steps>
-        <p v-if="order.status === 'SHIPPED'" class="order-steps__hint">
+        <p v-if="order.status === 'SHIPPING'" class="order-steps__hint">
           已开始发货：客户不能再取消，商家仍可在交易完成前取消。
         </p>
       </el-card>

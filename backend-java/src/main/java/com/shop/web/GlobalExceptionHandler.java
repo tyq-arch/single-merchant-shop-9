@@ -34,8 +34,9 @@ public class GlobalExceptionHandler {
         Map<String, Object> error = new LinkedHashMap<>();
         error.put("code", e.getCode());
         error.put("message", e.getMessage());
-        if (e instanceof ValidationException) {
-            error.put("details", ((ValidationException) e).getDetails());
+        // details：校验错误逐字段、下单缺货逐商品（TBD-04）
+        if (e.getDetails() != null) {
+            error.put("details", e.getDetails());
         }
         return ResponseEntity.status(e.getStatus()).body(singletonError(error));
     }

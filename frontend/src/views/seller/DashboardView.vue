@@ -21,7 +21,7 @@ const counts = ref({
   ON_SALE: 0,
   SOLD_OUT: 0,
   OFF_SHELF: 0,
-  CREATED: 0,
+  CUSTOMER_PLACED: 0,
 })
 const customerTotal = ref(0)
 const recentOrders = ref([])
@@ -35,7 +35,7 @@ async function load() {
         listProducts({ page: 1, page_size: 1, status: 'SOLD_OUT' }),
         listProducts({ page: 1, page_size: 1, status: 'OFF_SHELF' }),
         listCustomers({ page: 1, page_size: 1 }),
-        listOrders({ page: 1, page_size: 1, status: 'CREATED' }),
+        listOrders({ page: 1, page_size: 1, status: 'CUSTOMER_PLACED' }),
         listOrders({ page: 1, page_size: 5 }),
       ])
 
@@ -43,7 +43,7 @@ async function load() {
       ON_SALE: onSale.total || 0,
       SOLD_OUT: soldOut.total || 0,
       OFF_SHELF: offShelf.total || 0,
-      CREATED: pending.total || 0,
+      CUSTOMER_PLACED: pending.total || 0,
     }
     customerTotal.value = customers.total || 0
     recentOrders.value = (latest.items || []).map(normalizeOrder)
@@ -94,12 +94,12 @@ onMounted(load)
       </router-link>
 
       <router-link
-        :to="{ name: 'seller-orders', query: { status: 'CREATED' } }"
+        :to="{ name: 'seller-orders', query: { status: 'CUSTOMER_PLACED' } }"
         class="stat-card stat-card--warning"
       >
         <span class="stat-card__icon">⏳</span>
         <div>
-          <p class="stat-card__value">{{ counts.CREATED }}</p>
+          <p class="stat-card__value">{{ counts.CUSTOMER_PLACED }}</p>
           <p class="stat-card__label">待确认订单</p>
         </div>
       </router-link>

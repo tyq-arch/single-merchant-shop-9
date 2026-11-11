@@ -53,29 +53,38 @@ public class OrderService {
 
         List<Map<String, Object>> lines = new ArrayList<>();
         List<String> problems = new ArrayList<>();
+        // TBD-04：缺货逐项提示，details 让前端能把具体商品标红并剔除
+        List<Map<String, Object>> shortages = new ArrayList<>();
         int totalCents = 0;
         for (String productId : productIds) {
             Map<String, Object> cart = Jdbc.queryOne(conn,
                     "SELECT * FROM cart_item WHERE customer_id = ? AND product_id = ?", customerId, productId);
             if (cart == null) {
                 problems.add(productId + " 不在购物车中");
+                shortages.add(shortage(productId, productId, 0, 0, "NOT_IN_CART", "不在购物车中"));
                 continue;
             }
             Map<String, Object> product = Jdbc.queryOne(conn, "SELECT * FROM product WHERE id = ?", productId);
             if (product == null) {
                 problems.add(productId + " 商品已不存在");
+                shortages.add(shortage(productId, productId, Jdbc.intOf(cart, "quantity"), 0,
+                        "PRODUCT_REMOVED", "商品已不存在"));
                 continue;
             }
             int quantity = Jdbc.intOf(cart, "quantity");
             String status = Jdbc.strOf(product, "status");
             if (!Enums.ProductStatus.ON_SALE.equals(status)) {
                 problems.add(Jdbc.strOf(product, "name") + "（已下架/售罄，请剔除）");
+                shortages.add(shortage(productId, Jdbc.strOf(product, "name"), quantity,
+                        products.availableOf(conn, product), "OFF_SALE", "已下架/售罄，请剔除"));
                 continue;
             }
             int available = products.availableOf(conn, product);
             if (quantity > available) {
                 problems.add(Jdbc.strOf(product, "name") + "（库存不足：需 " + quantity
                         + " 件，可售 " + available + " 件，请剔除或调减数量）");
+                shortages.add(shortage(productId, Jdbc.strOf(product, "name"), quantity, available,
+                        "INSUFFICIENT", "库存不足：需 " + quantity + " 件，可售 " + available + " 件"));
                 continue;
             }
             Map<String, Object> line = new LinkedHashMap<>();
@@ -88,7 +97,7 @@ public class OrderService {
             totalCents += Jdbc.intOf(product, "price_cents") * quantity;
         }
         if (!problems.isEmpty()) {
-            throw new ConflictException("以下商品无法下单，请剔除后重试：" + String.join("；", problems));
+            throw new ConflictException("以下商品无法下单，请剔除后重试：" + String.join("；", problems), shortages);
         }
 
         String now = Utils.nowIso();
@@ -122,6 +131,22 @@ public class OrderService {
         result.put("order", orderDetail(conn, customerId, orderId));
         result.put("message", "下单成功，所选商品库存已占用");
         return result;
+    }
+
+    /**
+     * 缺货明细（TBD-04）：随 409 的 error.details 下发，
+     * 前端据此把具体条目标红并从本次选择中剔除。
+     */
+    private static Map<String, Object> shortage(String productId, String name, int quantity,
+                                                int available, String reason, String message) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("product_id", productId);
+        detail.put("name", name);
+        detail.put("quantity", quantity);
+        detail.put("available", available);
+        detail.put("reason", reason);
+        detail.put("message", message);
+        return detail;
     }
 
     // --------------------------- 查询 ---------------------------

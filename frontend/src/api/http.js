@@ -4,6 +4,7 @@ import {
   clearCustomerAuth,
   clearSellerAuth,
   getCustomerAuth,
+  getGuestId,
   getSellerAuth,
 } from '@/utils/storage'
 
@@ -95,6 +96,14 @@ http.interceptors.request.use((config) => {
   } else if (role === 'seller') {
     const auth = getSellerAuth()
     if (auth?.token) config.headers.Authorization = `Bearer ${auth.token}`
+  }
+
+  // 游客临时预选（/guest/**）带匿名会话标识；登录请求也带上，
+  // 后端据此把游客收藏/购物车并入账号（TBD-12）。
+  if (role === 'none' && (config.url || '').startsWith('/guest/')) {
+    config.headers['X-Guest-Id'] = getGuestId()
+  } else if (config.withGuestId) {
+    config.headers['X-Guest-Id'] = getGuestId()
   }
 
   return config

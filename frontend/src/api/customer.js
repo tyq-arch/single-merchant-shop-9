@@ -15,14 +15,14 @@ import http from './http'
  *   DELETE /customer/favorites/{product_id}       → { message }
  *
  * 购物车（同一商品仅一条）
- *   GET    /customer/cart                         → { items, total_quantity?, total_amount? }
+ *   GET    /customer/cart                         → { items, item_count, total_quantity, total_amount }
  *   POST   /customer/cart { product_id, quantity }→ { message, item }
  *   PATCH  /customer/cart/{product_id} { quantity }→ { message, item }
  *   DELETE /customer/cart/{product_id}            → { message }
- *   POST   /customer/cart/checkout { product_ids[] } → { message, order }
  *   POST   /customer/cart/favorites { product_ids[] } → { message, converted_count }
  *
- * 订单
+ * 订单（下单必经购物车，TBD-14：没有单独的 checkout 路径，直接建单）
+ *   POST   /customer/orders { product_ids[] }        → { message, order }
  *   GET    /customer/orders?page=&page_size=&status= → { items, total }
  *   GET    /customer/orders/{order_id}               → { order }
  *   POST   /customer/orders/{order_id}/cancel        → { message, order }
@@ -38,9 +38,9 @@ export function register(payload) {
   return http.post('/customer/register', payload, { authRole: 'none' })
 }
 
-/** 登录，返回 { token, expires_at, customer } */
+/** 登录，返回 { token, expires_at, customer, preselect_merged }；带 X-Guest-Id 时合并游客临时预选 */
 export function login(payload) {
-  return http.post('/customer/login', payload, { authRole: 'none' })
+  return http.post('/customer/login', payload, { authRole: 'none', withGuestId: true })
 }
 
 /** 登出（无状态令牌，服务端确认后客户端丢弃即可） */
@@ -62,10 +62,6 @@ export function changePassword(payload) {
 
 export function listFavorites(params) {
   return http.get('/customer/favorites', { params })
-}
-
-export function getFavoriteStatus(productId) {
-  return http.get(`/customer/favorites/${encodeURIComponent(productId)}`)
 }
 
 export function addFavorite(productId) {
@@ -94,9 +90,9 @@ export function removeCartItem(productId) {
   return http.delete(`/customer/cart/${encodeURIComponent(productId)}`)
 }
 
-/** 从购物车多选下单，生成含多个订单项的订单 */
+/** 从购物车多选下单，生成含多个订单项的订单（TBD-14：下单必经购物车） */
 export function checkoutCart(productIds) {
-  return http.post('/customer/cart/checkout', { product_ids: productIds })
+  return http.post('/customer/orders', { product_ids: productIds })
 }
 
 /** 购物车多选转收藏，后端负责移除原购物车项 */

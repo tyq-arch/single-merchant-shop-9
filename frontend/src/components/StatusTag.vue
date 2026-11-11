@@ -21,10 +21,10 @@ const VARIANT_BY_STATUS = {
   SOLD_OUT: 'danger',
   OFF_SHELF: 'muted',
   // 订单状态：客户下单 → 商家确认 → 备货完成 → 开始发货 → 交易完成
-  CREATED: 'primary',
-  CONFIRMED: 'primary',
-  PREPARED: 'warning',
-  SHIPPED: 'warning',
+  CUSTOMER_PLACED: 'primary',
+  SELLER_CONFIRMED: 'primary',
+  STOCK_READY: 'warning',
+  SHIPPING: 'warning',
   COMPLETED: 'success',
   CANCELLED: 'muted',
 }

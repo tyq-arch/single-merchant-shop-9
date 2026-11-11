@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 import { cancelOrder, getOrder } from '@/api/customer'
 import EmptyState from '@/components/EmptyState.vue'
@@ -54,17 +54,9 @@ async function load() {
   }
 }
 
+/** 客户取消（FR-028）：TBD-07 明确「即时生效、无需原因、无二次确认」 */
 async function onCancel() {
   if (!order.value || cancelling.value) return
-  try {
-    await ElMessageBox.confirm(
-      '取消后订单不可恢复，占用的库存会回补。确认取消该订单？',
-      '取消订单',
-      { confirmButtonText: '确认取消', cancelButtonText: '再想想', type: 'warning' },
-    )
-  } catch {
-    return
-  }
 
   cancelling.value = true
   try {
@@ -140,7 +132,7 @@ onMounted(load)
             :title="step.label"
           />
         </el-steps>
-        <p v-if="order.status === 'SHIPPED'" class="order-steps__hint">
+        <p v-if="order.status === 'SHIPPING'" class="order-steps__hint">
           商家已开始发货，客户不能再取消订单。
         </p>
       </section>

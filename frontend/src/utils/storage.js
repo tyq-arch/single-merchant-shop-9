@@ -9,6 +9,10 @@
 
 const SELLER_KEY = 'shop_seller_auth'
 const CUSTOMER_KEY = 'shop_customer_auth'
+const GUEST_KEY = 'shop_guest_id'
+
+/** 与后端 Validation.guestId 保持一致：[A-Za-z0-9_-]{8,64} */
+const GUEST_ID_RE = /^[A-Za-z0-9_-]{8,64}$/
 
 function safeGet(storage, key) {
   try {
@@ -71,4 +75,28 @@ export function setCustomerAuth(auth) {
 
 export function clearCustomerAuth() {
   safeRemove(localStorage, CUSTOMER_KEY)
+}
+
+/* ---------- 游客匿名会话（X-Guest-Id） ---------- */
+
+function createGuestId() {
+  const webCrypto = globalThis.crypto
+  if (webCrypto?.randomUUID) return webCrypto.randomUUID()
+  return `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`
+}
+
+/**
+ * 游客会话标识：未登录时收藏/加购都挂在这个 id 下，
+ * 登录时随请求带给后端，由后端把临时数据并入账号（TBD-12）。
+ */
+export function getGuestId() {
+  const existing = safeGet(localStorage, GUEST_KEY)
+  if (existing && GUEST_ID_RE.test(existing)) return existing
+  const created = createGuestId()
+  safeSet(localStorage, GUEST_KEY, created)
+  return created
+}
+
+export function clearGuestId() {
+  safeRemove(localStorage, GUEST_KEY)
 }

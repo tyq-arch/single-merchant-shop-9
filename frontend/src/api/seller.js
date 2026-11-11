@@ -6,14 +6,12 @@ import http from './http'
  * 订单接口约定（与后端对接时以本节为准）：
  *   GET  /seller/orders?page=&page_size=&status=&keyword= → { items, total }
  *   GET  /seller/orders/{order_id}                         → { order }
- *   POST /seller/orders/{order_id}/confirm                 → { message, order }
- *   POST /seller/orders/{order_id}/prepare                 → { message, order }
- *   POST /seller/orders/{order_id}/ship                    → { message, order }
- *   POST /seller/orders/{order_id}/complete                → { message, order }
+ *   POST /seller/orders/{order_id}/advance                 → { message, order }
  *   POST /seller/orders/{order_id}/cancel                  → { message, order }
  *
- * 订单状态：CREATED → CONFIRMED → PREPARED → SHIPPED → COMPLETED，
- * CANCELLED 为终态。状态只能按序推进，前端不自行计算业务规则。
+ * 订单状态：CUSTOMER_PLACED → SELLER_CONFIRMED → STOCK_READY → SHIPPING → COMPLETED，
+ * CANCELLED 为终态。推进只有「推进一步」一个接口，下一状态由后端状态机决定，
+ * 前端不自行计算业务规则、也不传目标状态。
  */
 
 /* ---------------- 账号 ---------------- */
@@ -88,20 +86,14 @@ export function getOrder(orderId) {
   return http.get(`/seller/orders/${encodeURIComponent(orderId)}`)
 }
 
-const ADVANCE_PATHS = {
-  CONFIRM: 'confirm',
-  PREPARE: 'prepare',
-  SHIP: 'ship',
-  COMPLETE: 'complete',
-}
-
-/** 按订单状态机推进一步：CONFIRM / PREPARE / SHIP / COMPLETE */
-export function advanceOrder(orderId, action) {
-  const path = ADVANCE_PATHS[action]
-  if (!path) {
-    return Promise.reject(new Error(`未知的订单推进动作：${action}`))
-  }
-  return http.post(`/seller/orders/${encodeURIComponent(orderId)}/${path}`)
+/**
+ * 按订单状态机推进一步（FR-026）。
+ *
+ * 后端只有 POST /seller/orders/{id}/advance 一个入口：
+ * 客户下单→商家确认→备货完成→开始发货→交易完成，不可跳序、不可回退。
+ */
+export function advanceOrder(orderId) {
+  return http.post(`/seller/orders/${encodeURIComponent(orderId)}/advance`)
 }
 
 export function cancelOrder(orderId) {

@@ -51,11 +51,12 @@ async function onSubmit() {
   try {
     const data = await login({ username: form.username.trim(), password: form.password })
     customerStore.save(data)
-    const merged = await shopStore.mergeGuestData()
+    // 登录请求已带 X-Guest-Id，后端把游客临时收藏/购物车并入账号（TBD-12）
+    const merged = await shopStore.mergeGuestPreselect(data.preselect_merged)
     const mergedCount = merged.favorites + merged.cart
     ElMessage.success(
       mergedCount
-        ? `登录成功，已合并 ${mergedCount} 件临时收藏 / 购物车商品`
+        ? `登录成功，已合并 ${merged.favorites} 条收藏、${merged.cart} 件购物车商品`
         : '登录成功',
     )
     router.replace(safeRedirect(route.query.redirect))

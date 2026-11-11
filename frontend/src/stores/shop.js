@@ -12,63 +12,46 @@ import {
   removeFavorite,
   updateCartItemQuantity,
 } from '@/api/customer'
+import * as guestApi from '@/api/guest'
 import { useCustomerStore } from '@/stores/customer'
-import * as guest from '@/utils/guestShop'
+import { FAVORITES_MAX_ITEMS, FAVORITES_PAGE_SIZE, clampQuantity } from '@/utils/limits'
 import { normalizeCartLine, normalizeFavorite } from '@/utils/shop'
 
 /**
  * 收藏 / 购物车的统一入口。
  *
- * 未登录：读写 localStorage 的临时收藏与临时购物车；
- * 已登录：走后端接口；
- * 登录成功后由 mergeGuestData() 把临时数据合并进账号（TBD-12）。
+ * 未登录：走 /api/guest/**，数据挂在后端匿名会话（X-Guest-Id）下；
+ * 已登录：走 /api/customer/**；
+ * 登录时同一个 X-Guest-Id 随请求提交，由后端把临时收藏/购物车并入账号（TBD-12），
+ * 前端只负责清点合并结果并刷新角标，不再逐条补录。
  */
 export const useShopStore = defineStore('shop', () => {
   const customerStore = useCustomerStore()
-
-  const guestCart = ref(guest.readGuestCart())
-  const guestFavorites = ref(guest.readGuestFavorites())
-  const guestFavoriteIds = computed(() =>
-    guestFavorites.value.map((item) => String(item.product_id)),
-  )
 
   const serverCartCount = ref(0)
   const serverFavoriteCount = ref(0)
   const favoriteIds = ref([])
 
-  const cartCount = computed(() => {
-    if (!customerStore.isLoggedIn) {
-      return guestCart.value.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
-    }
-    return serverCartCount.value
-  })
+  const isGuest = computed(() => !customerStore.isLoggedIn)
 
-  const favoriteCount = computed(() =>
-    customerStore.isLoggedIn ? serverFavoriteCount.value : guestFavorites.value.length,
-  )
+  const cartCount = computed(() => serverCartCount.value)
+
+  const favoriteCount = computed(() => serverFavoriteCount.value)
 
   function localProductId(record) {
     return String(record.product_id ?? record.product?.id ?? record.id ?? '')
   }
 
-  function refreshLocal() {
-    guestCart.value = guest.readGuestCart()
-    guestFavorites.value = guest.readGuestFavorites()
-  }
+  /* ---------------- 角标 ---------------- */
 
-  /** 顶栏角标：登录态取后端，游客态取本地 */
+  /** 顶栏角标：游客走 /guest，登录态走 /customer */
   async function refreshCounts() {
-    if (!customerStore.isLoggedIn) {
-      refreshLocal()
-      return
-    }
-
     try {
-      const [cart, favorites] = await Promise.all([
-        listCart(),
-        listFavorites({ page: 1, page_size: 1 }),
-      ])
-      serverCartCount.value = (cart.items || []).reduce(
+      const [cart, favorites] = isGuest.value
+        ? await Promise.all([guestApi.listCart(), guestApi.listFavorites({ page: 1, page_size: 1 })])
+        : await Promise.all([listCart(), listFavorites({ page: 1, page_size: 1 })])
+
+      serverCartCount.value = Number(cart?.total_quantity) || (cart.items || []).reduce(
         (sum, item) => sum + (Number(item.quantity) || 0),
         0,
       )
@@ -80,43 +63,51 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  /* ---------------- 列表 ---------------- */
+
   async function loadCart() {
-    if (!customerStore.isLoggedIn) {
-      return guestCart.value.map(normalizeCartLine)
-    }
-    const data = await listCart()
+    const data = isGuest.value ? await guestApi.listCart() : await listCart()
     return (data.items || []).map(normalizeCartLine)
   }
 
   async function loadFavorites() {
-    if (!customerStore.isLoggedIn) {
-      return guestFavorites.value.map(normalizeFavorite)
-    }
-    const data = await listFavorites({
-      page: 1,
-      page_size: guest.FAVORITES_MAX_ITEMS,
-    })
-    serverFavoriteCount.value = Number(
-      data.total ?? (data.items || []).length,
-    ) || 0
-    return (data.items || []).map(normalizeFavorite)
+    const data = await fetchAllFavorites()
+
+    serverFavoriteCount.value = data.total
+    return data.items.map(normalizeFavorite)
   }
 
-  /** 商品详情进入时调用，拿到当前客户已收藏的商品 ID */
-  async function loadFavoriteIds() {
-    if (!customerStore.isLoggedIn) {
-      favoriteIds.value = [...guestFavoriteIds.value]
-      return
+  /**
+   * 拉取全部收藏。
+   *
+   * 后端分页接口的 page_size 上限是 AppConfig.maxPageSize（默认 100），
+   * 而收藏本身最多 200 条，所以不能把 200 当成 page_size 直接传
+   * （会触发 422「page_size 必须在 1 到 100 之间」），需要按页循环取。
+   */
+  async function fetchAllFavorites() {
+    const fetchPage = isGuest.value ? guestApi.listFavorites : listFavorites
+    const maxPages = Math.ceil(FAVORITES_MAX_ITEMS / FAVORITES_PAGE_SIZE)
+    const items = []
+    let total = 0
+
+    for (let page = 1; page <= maxPages; page += 1) {
+      const data = await fetchPage({ page, page_size: FAVORITES_PAGE_SIZE })
+      const rows = data.items || []
+      total = Number(data.total ?? rows.length) || 0
+      items.push(...rows)
+      // 本页不足一页，或已取满总数，说明没有更多
+      if (rows.length < FAVORITES_PAGE_SIZE || items.length >= total) break
     }
+
+    return { items, total: total || items.length }
+  }
+
+  /** 商品详情进入时调用，拿到当前已收藏的商品 ID */
+  async function loadFavoriteIds() {
     try {
-      const data = await listFavorites({
-        page: 1,
-        page_size: guest.FAVORITES_MAX_ITEMS,
-      })
-      favoriteIds.value = (data.items || []).map(localProductId)
-      serverFavoriteCount.value = Number(
-        data.total ?? favoriteIds.value.length,
-      ) || 0
+      const data = await fetchAllFavorites()
+      favoriteIds.value = data.items.map(localProductId)
+      serverFavoriteCount.value = data.total
     } catch {
       favoriteIds.value = []
     }
@@ -140,36 +131,32 @@ export const useShopStore = defineStore('shop', () => {
       throw new Error('商品库存不足')
     }
 
-    if (!customerStore.isLoggedIn) {
-      guestCart.value = guest.addGuestCartItem(product, quantity)
-      return { guest: true }
+    const guest = isGuest.value
+    if (guest) {
+      await guestApi.addCartItem(product.id, clampQuantity(quantity))
+    } else {
+      await addCartItem(product.id, clampQuantity(quantity))
     }
-
-    await addCartItem(product.id, guest.clampQuantity(quantity))
     await refreshCounts()
-    return { guest: false }
+    return { guest }
   }
 
   async function updateQuantity(productId, quantity) {
-    const next = guest.clampQuantity(quantity)
-    if (!customerStore.isLoggedIn) {
-      guestCart.value = guest.updateGuestCartQuantity(productId, next)
-      return
+    const next = clampQuantity(quantity)
+    if (isGuest.value) {
+      await guestApi.updateCartItemQuantity(productId, next)
+    } else {
+      await updateCartItemQuantity(productId, next)
     }
-    await updateCartItemQuantity(productId, next)
     await refreshCounts()
   }
 
   async function removeCartItems(productIds) {
     if (!productIds.length) return { failed: 0 }
 
-    if (!customerStore.isLoggedIn) {
-      guestCart.value = guest.removeGuestCartItems(productIds)
-      return { failed: 0 }
-    }
-
+    const remove = isGuest.value ? guestApi.removeCartItem : removeCartItem
     const results = await Promise.allSettled(
-      productIds.map((productId) => removeCartItem(productId)),
+      productIds.map((productId) => remove(productId)),
     )
     await refreshCounts()
     return { failed: results.filter((item) => item.status === 'rejected').length }
@@ -179,36 +166,10 @@ export const useShopStore = defineStore('shop', () => {
   async function convertSelectedToFavorites(productIds) {
     if (!productIds.length) return { converted: 0 }
 
-    if (!customerStore.isLoggedIn) {
-      const idSet = new Set(productIds.map(String))
-      let converted = 0
-      let error = ''
-      for (const item of guestCart.value) {
-        if (!idSet.has(String(item.product_id))) continue
-        try {
-          // 购物车快照是 snake_case，收藏写入需要商品对象
-          guest.addGuestFavorite({
-            id: item.product_id,
-            name: item.name,
-            price: item.price,
-            primary_image: item.primary_image,
-            stock: item.stock,
-            status: item.status,
-            status_label: item.status_label,
-          })
-          converted += 1
-        } catch (err) {
-          error = err.message
-          break
-        }
-      }
-      const convertedIds = guestCart.value
-        .filter((item) => idSet.has(String(item.product_id)))
-        .slice(0, converted)
-        .map((item) => item.product_id)
-      guestCart.value = guest.removeGuestCartItems(convertedIds)
-      guestFavorites.value = guest.readGuestFavorites()
-      return { converted, error }
+    if (isGuest.value) {
+      const data = await guestApi.convertCartToFavorites(productIds)
+      await refreshCounts()
+      return { converted: data?.converted_count ?? productIds.length }
     }
 
     const data = await convertCartToFavorites(productIds)
@@ -216,6 +177,7 @@ export const useShopStore = defineStore('shop', () => {
     return { converted: data?.converted_count ?? productIds.length }
   }
 
+  /** 下单：仅登录客户可用（TBD-14），游客在页面侧已被引导去登录 */
   async function checkout(productIds) {
     const data = await checkoutCart(productIds)
     await refreshCounts()
@@ -225,108 +187,54 @@ export const useShopStore = defineStore('shop', () => {
   /* ---------------- 收藏 ---------------- */
 
   async function toggleFavorite(product) {
-    if (!customerStore.isLoggedIn) {
-      const productId = String(product.id)
-      const wasFavorite = guest.isGuestFavorite(productId)
-      if (wasFavorite) {
-        guestFavorites.value = guest.removeGuestFavorite(productId)
-      } else {
-        guestFavorites.value = guest.addGuestFavorite(product)
-      }
-      return { favorited: !wasFavorite, guest: true }
-    }
-
     const productId = String(product.id)
     const wasFavorite = hasFavorite(productId)
+    const guest = isGuest.value
+
     if (wasFavorite) {
-      await removeFavorite(productId)
+      await (guest ? guestApi.removeFavorite(productId) : removeFavorite(productId))
       favoriteIds.value = favoriteIds.value.filter((id) => id !== productId)
       serverFavoriteCount.value = Math.max(0, serverFavoriteCount.value - 1)
     } else {
-      await addFavorite(productId)
+      await (guest ? guestApi.addFavorite(productId) : addFavorite(productId))
       favoriteIds.value = [...favoriteIds.value, productId]
       serverFavoriteCount.value += 1
     }
-    return { favorited: !wasFavorite, guest: false }
+
+    return { favorited: !wasFavorite, guest }
   }
 
   async function removeFavoriteItem(productId) {
-    if (!customerStore.isLoggedIn) {
-      guestFavorites.value = guest.removeGuestFavorite(productId)
-      return
+    const id = String(productId)
+    if (isGuest.value) {
+      await guestApi.removeFavorite(id)
+    } else {
+      await removeFavorite(id)
     }
-    await removeFavorite(productId)
-    favoriteIds.value = favoriteIds.value.filter(
-      (id) => id !== String(productId),
-    )
+    favoriteIds.value = favoriteIds.value.filter((item) => item !== id)
     serverFavoriteCount.value = Math.max(0, serverFavoriteCount.value - 1)
   }
 
-  /* ---------------- 登录后合并临时数据 ---------------- */
+  /* ---------------- 登录后合并临时预选 ---------------- */
 
   /**
-   * 网络错误、5xx、404（接口尚未部署）时保留本地数据，下次登录再试；
-   * 4xx（已下架、库存不足、超出上限）说明该商品确实无法合并，直接丢弃。
+   * 登录接口已经把 X-Guest-Id 交给后端，回包里的 preselect_merged
+   * 就是合并结果（favorites_added / cart_merged）。
+   * 这里只清点数量并刷新角标，临时数据已由后端删除、并入账号。
    */
-  function isRetryableMergeError(error) {
-    return !error.status || error.status >= 500 || error.status === 404
-  }
-
-  /**
-   * 把游客临时收藏/购物车合并进账号。
-   *
-   * 单个商品失败时：4xx（已下架、库存不足等）直接丢弃；
-   * 网络错误或 5xx 保留在本地，下次登录再试。
-   */
-  async function mergeGuestData() {
-    if (!customerStore.isLoggedIn) return { favorites: 0, cart: 0 }
-
-    const pendingFavorites = [...guestFavorites.value]
-    const pendingCart = [...guestCart.value]
-    if (!pendingFavorites.length && !pendingCart.length) {
-      await refreshCounts()
-      return { favorites: 0, cart: 0 }
-    }
-
-    const keepFavorites = []
-    const keepCart = []
-    let mergedFavorites = 0
-    let mergedCart = 0
-
-    for (const item of pendingFavorites) {
-      try {
-        await addFavorite(item.product_id)
-        mergedFavorites += 1
-      } catch (error) {
-        if (isRetryableMergeError(error)) keepFavorites.push(item)
-      }
-    }
-
-    for (const item of pendingCart) {
-      try {
-        await addCartItem(item.product_id, guest.clampQuantity(item.quantity))
-        mergedCart += 1
-      } catch (error) {
-        if (isRetryableMergeError(error)) keepCart.push(item)
-      }
-    }
-
-    guest.writeGuestFavorites(keepFavorites)
-    guest.writeGuestCart(keepCart)
-    guestFavorites.value = keepFavorites
-    guestCart.value = keepCart
-
+  async function mergeGuestPreselect(merged) {
     await refreshCounts()
-    return { favorites: mergedFavorites, cart: mergedCart }
+    return {
+      favorites: Number(merged?.favorites_added) || 0,
+      cart: Number(merged?.cart_merged) || 0,
+    }
   }
 
   return {
-    guestCart,
-    guestFavorites,
     favoriteIds,
     cartCount,
     favoriteCount,
-    refreshLocal,
+    isGuest,
     refreshCounts,
     loadCart,
     loadFavorites,
@@ -339,6 +247,6 @@ export const useShopStore = defineStore('shop', () => {
     checkout,
     toggleFavorite,
     removeFavoriteItem,
-    mergeGuestData,
+    mergeGuestPreselect,
   }
 })

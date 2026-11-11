@@ -27,7 +27,9 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                // PATCH 必须列进来：购物车改数量用 PATCH，缺了会被 Spring 判为
+                // "Invalid CORS request" 直接 403（开发期经 vite 代理仍带 Origin）。
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
                 .allowedHeaders("*")
                 .maxAge(3600);
     }

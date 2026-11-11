@@ -7,45 +7,54 @@
  *   - 订单：  { id, order_no, status, statusLabel, total_amount, created_at, items[] }
  */
 
+/**
+ * 订单状态码与后端 com.shop.enums.Enums.OrderStatus 完全一致：
+ * CUSTOMER_PLACED → SELLER_CONFIRMED → STOCK_READY → SHIPPING → COMPLETED，
+ * CANCELLED 为终态。页面判状态一律用这里的常量，不要再写字面量。
+ */
 export const ORDER_STATUS_LABELS = {
-  CREATED: '客户下单',
-  CONFIRMED: '商家确认',
-  PREPARED: '备货完成',
-  SHIPPED: '开始发货',
+  CUSTOMER_PLACED: '客户下单',
+  SELLER_CONFIRMED: '商家确认',
+  STOCK_READY: '备货完成',
+  SHIPPING: '开始发货',
   COMPLETED: '交易完成',
   CANCELLED: '已取消',
 }
 
 export const ORDER_STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
-  { value: 'CREATED', label: '客户下单' },
-  { value: 'CONFIRMED', label: '商家确认' },
-  { value: 'PREPARED', label: '备货完成' },
-  { value: 'SHIPPED', label: '开始发货' },
+  { value: 'CUSTOMER_PLACED', label: '客户下单' },
+  { value: 'SELLER_CONFIRMED', label: '商家确认' },
+  { value: 'STOCK_READY', label: '备货完成' },
+  { value: 'SHIPPING', label: '开始发货' },
   { value: 'COMPLETED', label: '交易完成' },
   { value: 'CANCELLED', label: '已取消' },
 ]
 
 /** 订单正向流转的 5 个状态（已取消是终态，不在步骤条里） */
 export const ORDER_STEPS = [
-  { status: 'CREATED', label: '客户下单' },
-  { status: 'CONFIRMED', label: '商家确认' },
-  { status: 'PREPARED', label: '备货完成' },
-  { status: 'SHIPPED', label: '开始发货' },
+  { status: 'CUSTOMER_PLACED', label: '客户下单' },
+  { status: 'SELLER_CONFIRMED', label: '商家确认' },
+  { status: 'STOCK_READY', label: '备货完成' },
+  { status: 'SHIPPING', label: '开始发货' },
   { status: 'COMPLETED', label: '交易完成' },
 ]
 
-/** 商家可推进的下一步；当前已是终态时返回 null */
+/**
+ * 商家可推进的下一步；当前已是终态时返回 null。
+ * 后端只有单一「推进一步」接口 POST /seller/orders/{id}/advance，
+ * 由后端按状态机决定下一状态，前端只负责展示与确认。
+ */
 export function getNextOrderAction(status) {
   switch (status) {
-    case 'CREATED':
-      return { action: 'CONFIRM', label: '确认订单', targetStatus: 'CONFIRMED' }
-    case 'CONFIRMED':
-      return { action: 'PREPARE', label: '备货完成', targetStatus: 'PREPARED' }
-    case 'PREPARED':
-      return { action: 'SHIP', label: '开始发货', targetStatus: 'SHIPPED' }
-    case 'SHIPPED':
-      return { action: 'COMPLETE', label: '交易完成', targetStatus: 'COMPLETED' }
+    case 'CUSTOMER_PLACED':
+      return { label: '确认订单', targetStatus: 'SELLER_CONFIRMED' }
+    case 'SELLER_CONFIRMED':
+      return { label: '备货完成', targetStatus: 'STOCK_READY' }
+    case 'STOCK_READY':
+      return { label: '开始发货', targetStatus: 'SHIPPING' }
+    case 'SHIPPING':
+      return { label: '交易完成', targetStatus: 'COMPLETED' }
     default:
       return null
   }
@@ -53,7 +62,7 @@ export function getNextOrderAction(status) {
 
 /** 客户可在「开始发货」前取消（含客户下单/商家确认/备货完成） */
 export function canCustomerCancel(status) {
-  return ['CREATED', 'CONFIRMED', 'PREPARED'].includes(status)
+  return ['CUSTOMER_PLACED', 'SELLER_CONFIRMED', 'STOCK_READY'].includes(status)
 }
 
 /** 商家可在「交易完成」前取消；已取消不可重复取消 */

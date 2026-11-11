@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import EmptyState from '@/components/EmptyState.vue'
@@ -8,13 +8,14 @@ import StatusTag from '@/components/StatusTag.vue'
 import { useCustomerStore } from '@/stores/customer'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice } from '@/utils/format'
+import { FAVORITES_MAX_ITEMS } from '@/utils/limits'
 import { favoriteUnavailableText, isLinePurchasable } from '@/utils/shop'
 
 /**
  * B5 我的收藏 —— 挑战 B。
  *
  * 收藏不锁库存（AC-008）；商品下架后收藏项保留并标注「已下架 / 无货」（AC-009）。
- * 游客也能收藏，数据先存本机，登录后自动合并（TBD-12）。
+ * 游客也能收藏，数据存于后端匿名会话，登录后自动合并（TBD-12）。
  */
 const customerStore = useCustomerStore()
 const shopStore = useShopStore()
@@ -23,6 +24,11 @@ const loading = ref(true)
 const items = ref([])
 const addingId = ref('')
 const removingId = ref('')
+
+/** 是否已达收藏上限（200 条）—— 只影响提示文案，拦截以后端为准 */
+const favoriteLimitReached = computed(
+  () => items.value.length >= FAVORITES_MAX_ITEMS,
+)
 
 async function load() {
   loading.value = true
@@ -89,7 +95,10 @@ onMounted(load)
       <span class="favorites__hint">
         共 {{ items.length }} 件
       </span>
-      <router-link class="favorites__link" to="/cart">去购物车 →</router-link>
+      <div class="favorites__bar-actions">
+        <router-link class="favorites__go" to="/">← 继续购物</router-link>
+        <router-link class="favorites__link" to="/cart">去购物车 →</router-link>
+      </div>
     </div>
 
     <el-alert
@@ -98,10 +107,20 @@ onMounted(load)
       type="info"
       :closable="false"
       show-icon
-      title="未登录时的收藏仅保存在本机，登录后会自动合并进账号"
+      title="未登录时的收藏临时保存在游客会话中，登录后会自动合并进账号"
     />
 
     <div v-loading="loading" class="favorites__body">
+      <p
+        v-if="items.length"
+        class="favorites__limit"
+        :class="{ 'favorites__limit--full': favoriteLimitReached }"
+      >
+        收藏最多 {{ FAVORITES_MAX_ITEMS }} 件，当前
+        {{ items.length }}/{{ FAVORITES_MAX_ITEMS
+        }}<template v-if="favoriteLimitReached">，已达上限，需先取消部分收藏</template>
+      </p>
+
       <div v-if="items.length" class="favorite-list">
         <div v-for="item in items" :key="item.productId" class="favorite-card">
           <router-link
@@ -182,12 +201,44 @@ onMounted(load)
   color: var(--c-primary);
 }
 
+.favorites__bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+/* 返回商品列表：收藏看完能一键回首页继续挑 */
+.favorites__go {
+  padding: 4px 12px;
+  color: var(--c-primary);
+  text-decoration: none;
+  background: var(--c-primary-soft);
+  border-radius: var(--r-btn);
+  white-space: nowrap;
+}
+
+.favorites__go:hover {
+  color: var(--c-primary-hover);
+}
+
 .favorites__alert {
   margin-bottom: var(--sp-3);
 }
 
 .favorites__body {
   min-height: 200px;
+}
+
+/* TBD-11 收藏上限提示：商品卡片上方的灰色小字 */
+.favorites__limit {
+  margin: 0 0 var(--sp-2);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-text-weak);
+}
+
+.favorites__limit--full {
+  color: var(--c-warning);
 }
 
 .favorite-list {

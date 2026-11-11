@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { getCategories, listProducts } from '@/api/public'
@@ -23,6 +23,18 @@ const keyword = ref('')
 const categoryId = ref(null)
 const categoryOptions = ref([])
 
+/** 已生效的搜索条件 —— 用于结果摘要，避免用户还没点搜索就显示筛选结果 */
+const appliedKeyword = ref('')
+const appliedCategoryId = ref(null)
+
+const hasFilter = computed(() => Boolean(appliedKeyword.value || appliedCategoryId.value))
+
+const resultSummary = computed(() => {
+  if (!hasFilter.value) return ''
+  if (appliedKeyword.value) return `「${appliedKeyword.value}」的搜索结果`
+  return '当前类别下的商品'
+})
+
 const cascaderProps = {
   value: 'value',
   label: 'label',
@@ -42,15 +54,19 @@ async function loadCategories() {
 
 async function load() {
   loading.value = true
+  const kw = keyword.value.trim()
+  const category = categoryId.value || null
   try {
     const result = await listProducts({
       page: page.value,
       page_size: pageSize.value,
-      keyword: keyword.value.trim() || undefined,
-      category_id: categoryId.value || undefined,
+      keyword: kw || undefined,
+      category_id: category || undefined,
     })
     items.value = result.items || []
     total.value = result.total || 0
+    appliedKeyword.value = kw
+    appliedCategoryId.value = category
   } catch (error) {
     ElMessage.error(error.message)
   } finally {
@@ -61,6 +77,14 @@ async function load() {
 function search() {
   page.value = 1
   load()
+  // 搜索结果在顶部，滚回顶部让用户看到「找到 N 件」的反馈
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function clearFilters() {
+  keyword.value = ''
+  categoryId.value = null
+  search()
 }
 
 function onPageChange(nextPage) {
@@ -77,17 +101,24 @@ onMounted(() => {
 <template>
   <div class="product-list">
     <div class="product-list__toolbar">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索商品名称"
-        clearable
-        @keyup.enter="search"
-        @clear="search"
-      >
-        <template #append>
-          <el-button @click="search">搜索</el-button>
-        </template>
-      </el-input>
+      <div class="product-list__search-row">
+        <el-input
+          v-model="keyword"
+          class="product-list__search-input"
+          placeholder="搜索商品名称"
+          clearable
+          @keyup.enter="search"
+          @clear="search"
+        />
+        <el-button
+          class="product-list__search-btn"
+          type="primary"
+          :loading="loading"
+          @click="search"
+        >
+          搜索
+        </el-button>
+      </div>
 
       <el-cascader
         v-model="categoryId"
@@ -97,6 +128,15 @@ onMounted(() => {
         clearable
         @change="search"
       />
+    </div>
+
+    <div v-if="hasFilter" class="product-list__summary">
+      <span class="product-list__summary-text">
+        {{ resultSummary }} · 共 <strong>{{ total }}</strong> 件
+      </span>
+      <button class="product-list__clear" type="button" @click="clearFilters">
+        清除筛选
+      </button>
     </div>
 
     <div v-loading="loading" class="product-list__body">
@@ -121,10 +161,23 @@ onMounted(() => {
 
       <EmptyState
         v-else-if="!loading"
-        icon="🛍️"
-        text="没有找到商品"
-        hint="换个关键词或类别试试，卖家发布商品后会显示在这里"
-      />
+        icon="🔍"
+        :text="hasFilter ? '没有找到符合条件的商品' : '还没有在售商品'"
+        :hint="
+          hasFilter
+            ? '换个关键词或类别试试，也可以直接看全部商品'
+            : '卖家发布商品后会显示在这里'
+        "
+      >
+        <button
+          v-if="hasFilter"
+          class="product-list__clear-btn"
+          type="button"
+          @click="clearFilters"
+        >
+          清除筛选，看全部商品
+        </button>
+      </EmptyState>
     </div>
 
     <div v-if="total > pageSize" class="product-list__pager">
@@ -151,6 +204,68 @@ onMounted(() => {
 
 .product-list__body {
   min-height: 240px;
+}
+
+/* 搜索行：输入框 + 独立蓝色按钮（放 append 里会被 el-input-group 压成灰底灰字） */
+.product-list__search-row {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.product-list__search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 搜索按钮：常态主色蓝，hover / 聚焦转中性灰，点击反馈明显 */
+.product-list__search-btn {
+  flex: 0 0 auto;
+  min-width: 80px;
+  --el-button-bg-color: var(--c-primary);
+  --el-button-border-color: var(--c-primary);
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #e2e8f0;
+  --el-button-hover-border-color: #cbd5e1;
+  --el-button-hover-text-color: var(--c-text-sub);
+  --el-button-active-bg-color: #cbd5e1;
+  --el-button-active-border-color: #94a3b8;
+  --el-button-active-text-color: var(--c-text);
+}
+
+/* 搜索结果摘要：让「搜索有没有生效」一眼可见 */
+.product-list__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--c-text-sub);
+}
+
+.product-list__summary-text strong {
+  color: var(--c-text);
+}
+
+.product-list__clear {
+  padding: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.product-list__clear-btn {
+  margin-top: var(--sp-2);
+  padding: 8px 16px;
+  font-size: var(--fs-sm);
+  color: var(--c-primary);
+  cursor: pointer;
+  background: var(--c-primary-soft);
+  border: none;
+  border-radius: var(--r-btn);
 }
 
 .product-grid {

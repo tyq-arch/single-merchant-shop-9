@@ -59,7 +59,7 @@ async function load() {
     product.value = data.product || data
     activeImage.value = product.value?.primary_image || ''
 
-    // 游客态也要同步本机临时收藏，否则已收藏的商品会显示成未收藏
+    // 游客态也要拉取游客会话里的收藏，否则已收藏的商品会显示成未收藏
     await shopStore.loadFavoriteIds()
     isFavorite.value = shopStore.hasFavorite(product.value.id)
   } catch (error) {
