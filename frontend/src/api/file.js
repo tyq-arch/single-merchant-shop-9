@@ -53,6 +53,22 @@ export function uploadImage(file) {
   })
 }
 
+/**
+ * 上传售后申请图片（FR-052）。
+ *
+ * 售后图片沿用商品图片规则（最多 9 张 / JPG·PNG / 单张 ≤5MB），
+ * 但调用方是客户而不是卖家，所以显式指定客户令牌。
+ */
+export function uploadAfterSaleImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post('/files/aftersale-images', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    authRole: 'customer',
+    timeout: 60000,
+  })
+}
+
 /** 上传富媒体描述素材（图片或视频），返回同上 */
 export function uploadMedia(file) {
   const formData = new FormData()

@@ -20,13 +20,30 @@ const VARIANT_BY_STATUS = {
   ON_SALE: 'success',
   SOLD_OUT: 'danger',
   OFF_SHELF: 'muted',
-  // 订单状态：客户下单 → 商家确认 → 备货完成 → 开始发货 → 交易完成
-  CUSTOMER_PLACED: 'primary',
+  // 订单状态（挑战 C）：
+  // 待支付 → 已支付 → 商家确认 → 备货完成 → 开始发货 → 交易完成
+  PAYMENT_PENDING: 'warning',
+  PAID: 'primary',
   SELLER_CONFIRMED: 'primary',
   STOCK_READY: 'warning',
   SHIPPING: 'warning',
   COMPLETED: 'success',
   CANCELLED: 'muted',
+  // 支付状态
+  UNPAID: 'muted',
+  FAILED: 'danger',
+  REFUNDING: 'warning',
+  REFUNDED: 'muted',
+  // 物流状态
+  SHIPPED: 'warning',
+  IN_TRANSIT: 'primary',
+  DELIVERING: 'warning',
+  DELIVERED: 'success',
+  // 售后状态
+  PENDING: 'warning',
+  NEGOTIATING: 'primary',
+  RESOLVED: 'success',
+  REJECTED: 'danger',
 }
 
 const variant = computed(() => VARIANT_BY_STATUS[props.status] || 'muted')

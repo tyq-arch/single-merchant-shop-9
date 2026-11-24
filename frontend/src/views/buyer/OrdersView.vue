@@ -14,10 +14,11 @@ import {
 } from '@/utils/shop'
 
 /**
- * B7 我的订单 —— 挑战 B。
+ * C 我的订单 —— 挑战 C。
  *
- * 订单 5 态 + 已取消；记录含订单号、商品清单、总金额、下单时间、状态（TBD-09）。
- * 客户侧只读，取消入口在订单详情页（开始发货前可取消）。
+ * 订单 7 态 + 已取消；记录含订单号、商品清单、总金额、支付状态、
+ * 物流状态、下单时间、订单状态（FR-030）。
+ * 客户侧只读：支付与取消入口在订单详情页，开始发货前可取消。
  */
 const loading = ref(true)
 const items = ref([])
@@ -91,6 +92,20 @@ onMounted(load)
           </div>
 
           <p class="order-card__items">{{ orderItemsSummary(order) }}</p>
+
+          <p v-if="order.status === 'PAYMENT_PENDING'" class="order-card__tip">
+            待支付：请在 24 小时内完成支付，超时订单将自动取消
+          </p>
+          <p
+            v-else-if="order.payment && order.payment.statusLabel !== '未支付'"
+            class="order-card__tip order-card__tip--muted"
+          >
+            支付：{{ order.payment.methodLabel }} · {{ order.payment.statusLabel }}
+          </p>
+          <p v-if="order.shipment" class="order-card__tip order-card__tip--muted">
+            物流：{{ order.shipment.carrierName }}
+            {{ order.shipment.trackingNo }} · {{ order.shipment.statusLabel }}
+          </p>
 
           <div class="order-card__foot">
             <span class="order-card__time">{{ order.created_at || '—' }}</span>
@@ -180,6 +195,17 @@ onMounted(load)
   font-size: var(--fs-base);
   font-weight: 600;
   word-break: break-all;
+}
+
+.order-card__tip {
+  margin: 0 0 var(--sp-1);
+  font-size: 12px;
+  color: var(--c-warning);
+  word-break: break-all;
+}
+
+.order-card__tip--muted {
+  color: var(--c-text-sub);
 }
 
 .order-card__foot {

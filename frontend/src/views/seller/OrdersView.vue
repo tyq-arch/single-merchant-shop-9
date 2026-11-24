@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -63,6 +63,18 @@ function openDetail(row) {
   router.push({ name: 'seller-order-detail', params: { id: row.id } })
 }
 
+/** 工作台/其他页面带 ?status= 跳进来时同步筛选条件 */
+watch(
+  () => route.query.status,
+  (value) => {
+    const next = typeof value === 'string' ? value : ''
+    if (next === status.value) return
+    status.value = next
+    page.value = 1
+    load()
+  },
+)
+
 onMounted(load)
 </script>
 
@@ -118,6 +130,28 @@ onMounted(load)
       <el-table-column label="金额" width="120">
         <template #default="{ row }">
           <span class="price">{{ formatPrice(row.total_amount) }}</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="支付" width="110">
+        <template #default="{ row }">
+          <StatusTag
+            v-if="row.payment"
+            :status="row.payment.status"
+            :label="row.payment.statusLabel"
+          />
+          <span v-else>—</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="物流" width="130">
+        <template #default="{ row }">
+          <StatusTag
+            v-if="row.shipment"
+            :status="row.shipment.status"
+            :label="row.shipment.statusLabel"
+          />
+          <span v-else>—</span>
         </template>
       </el-table-column>
 

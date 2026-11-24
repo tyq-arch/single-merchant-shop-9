@@ -177,9 +177,9 @@ export const useShopStore = defineStore('shop', () => {
     return { converted: data?.converted_count ?? productIds.length }
   }
 
-  /** 下单：仅登录客户可用（TBD-14），游客在页面侧已被引导去登录 */
-  async function checkout(productIds) {
-    const data = await checkoutCart(productIds)
+  /** 下单：仅登录客户可用；必须选择已有收货地址（FR-048 / TBD-07） */
+  async function checkout(productIds, addressId) {
+    const data = await checkoutCart(productIds, addressId)
     await refreshCounts()
     return data
   }

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import {
+  listAfterSales,
   listCustomers,
   listOrders,
   listProducts,
@@ -12,16 +13,17 @@ import { formatPrice } from '@/utils/format'
 import { normalizeOrder, orderItemCount } from '@/utils/shop'
 
 /**
- * S1 工作台 —— 挑战 B。
+ * S1 工作台 —— 挑战 C。
  *
- * 商品状态不再有「冻结」；核心关注点变为订单 5 态流转。
+ * 关注点：待支付 / 待确认 / 待发货 / 待处理售后，以及最近订单。
  */
 const loading = ref(true)
 const counts = ref({
   ON_SALE: 0,
-  SOLD_OUT: 0,
-  OFF_SHELF: 0,
-  CUSTOMER_PLACED: 0,
+  PAYMENT_PENDING: 0,
+  PAID: 0,
+  STOCK_READY: 0,
+  AFTER_SALE_PENDING: 0,
 })
 const customerTotal = ref(0)
 const recentOrders = ref([])
@@ -29,21 +31,30 @@ const recentOrders = ref([])
 async function load() {
   loading.value = true
   try {
-    const [onSale, soldOut, offShelf, customers, pending, latest] =
-      await Promise.all([
-        listProducts({ page: 1, page_size: 1, status: 'ON_SALE' }),
-        listProducts({ page: 1, page_size: 1, status: 'SOLD_OUT' }),
-        listProducts({ page: 1, page_size: 1, status: 'OFF_SHELF' }),
-        listCustomers({ page: 1, page_size: 1 }),
-        listOrders({ page: 1, page_size: 1, status: 'CUSTOMER_PLACED' }),
-        listOrders({ page: 1, page_size: 5 }),
-      ])
+    const [
+      onSale,
+      paymentPending,
+      paid,
+      stockReady,
+      aftersales,
+      customers,
+      latest,
+    ] = await Promise.all([
+      listProducts({ page: 1, page_size: 1, status: 'ON_SALE' }),
+      listOrders({ page: 1, page_size: 1, status: 'PAYMENT_PENDING' }),
+      listOrders({ page: 1, page_size: 1, status: 'PAID' }),
+      listOrders({ page: 1, page_size: 1, status: 'STOCK_READY' }),
+      listAfterSales({ page: 1, page_size: 1, status: 'PENDING' }),
+      listCustomers({ page: 1, page_size: 1 }),
+      listOrders({ page: 1, page_size: 5 }),
+    ])
 
     counts.value = {
       ON_SALE: onSale.total || 0,
-      SOLD_OUT: soldOut.total || 0,
-      OFF_SHELF: offShelf.total || 0,
-      CUSTOMER_PLACED: pending.total || 0,
+      PAYMENT_PENDING: paymentPending.total || 0,
+      PAID: paid.total || 0,
+      STOCK_READY: stockReady.total || 0,
+      AFTER_SALE_PENDING: aftersales.total || 0,
     }
     customerTotal.value = customers.total || 0
     recentOrders.value = (latest.items || []).map(normalizeOrder)
@@ -72,41 +83,52 @@ onMounted(load)
       </router-link>
 
       <router-link
-        :to="{ name: 'seller-products', query: { status: 'SOLD_OUT' } }"
-        class="stat-card stat-card--danger"
-      >
-        <span class="stat-card__icon">🔴</span>
-        <div>
-          <p class="stat-card__value">{{ counts.SOLD_OUT }}</p>
-          <p class="stat-card__label">售罄下架</p>
-        </div>
-      </router-link>
-
-      <router-link
-        :to="{ name: 'seller-products', query: { status: 'OFF_SHELF' } }"
+        :to="{ name: 'seller-orders', query: { status: 'PAYMENT_PENDING' } }"
         class="stat-card stat-card--muted"
       >
-        <span class="stat-card__icon">⚪</span>
+        <span class="stat-card__icon">⏰</span>
         <div>
-          <p class="stat-card__value">{{ counts.OFF_SHELF }}</p>
-          <p class="stat-card__label">手动下架</p>
+          <p class="stat-card__value">{{ counts.PAYMENT_PENDING }}</p>
+          <p class="stat-card__label">待支付订单</p>
         </div>
       </router-link>
 
       <router-link
-        :to="{ name: 'seller-orders', query: { status: 'CUSTOMER_PLACED' } }"
+        :to="{ name: 'seller-orders', query: { status: 'PAID' } }"
         class="stat-card stat-card--warning"
       >
-        <span class="stat-card__icon">⏳</span>
+        <span class="stat-card__icon">📥</span>
         <div>
-          <p class="stat-card__value">{{ counts.CUSTOMER_PLACED }}</p>
+          <p class="stat-card__value">{{ counts.PAID }}</p>
           <p class="stat-card__label">待确认订单</p>
         </div>
       </router-link>
 
       <router-link
-        :to="{ name: 'seller-customers' }"
+        :to="{ name: 'seller-orders', query: { status: 'STOCK_READY' } }"
+        class="stat-card stat-card--danger"
+      >
+        <span class="stat-card__icon">📦</span>
+        <div>
+          <p class="stat-card__value">{{ counts.STOCK_READY }}</p>
+          <p class="stat-card__label">待发货订单</p>
+        </div>
+      </router-link>
+
+      <router-link
+        :to="{ name: 'seller-aftersales', query: { status: 'PENDING' } }"
         class="stat-card stat-card--primary"
+      >
+        <span class="stat-card__icon">🛠️</span>
+        <div>
+          <p class="stat-card__value">{{ counts.AFTER_SALE_PENDING }}</p>
+          <p class="stat-card__label">待处理售后</p>
+        </div>
+      </router-link>
+
+      <router-link
+        :to="{ name: 'seller-customers' }"
+        class="stat-card stat-card--muted"
       >
         <span class="stat-card__icon">👥</span>
         <div>
@@ -141,6 +163,16 @@ onMounted(load)
             <span class="price">{{ formatPrice(row.total_amount) }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="支付" width="100">
+          <template #default="{ row }">
+            <StatusTag
+              v-if="row.payment"
+              :status="row.payment.status"
+              :label="row.payment.statusLabel"
+            />
+            <span v-else>—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="120">
           <template #default="{ row }">
             <StatusTag :status="row.status" :label="row.statusLabel" />
@@ -162,6 +194,7 @@ onMounted(load)
         <router-link :to="{ name: 'seller-publish' }">➕ 发布商品</router-link>
         <router-link :to="{ name: 'seller-categories' }">🗂️ 类别管理</router-link>
         <router-link :to="{ name: 'seller-orders' }">🧾 订单管理</router-link>
+        <router-link :to="{ name: 'seller-aftersales' }">🛠️ 售后管理</router-link>
         <router-link :to="{ name: 'seller-customers' }">👥 客户台账</router-link>
         <router-link :to="{ name: 'seller-logs' }">📋 操作日志</router-link>
       </div>

@@ -3,13 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+import { listAddresses } from '@/api/customer'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductImage from '@/components/ProductImage.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { useCustomerStore } from '@/stores/customer'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice } from '@/utils/format'
-import { isLinePurchasable } from '@/utils/shop'
+import { isLinePurchasable, normalizeAddress } from '@/utils/shop'
 import {
   CART_MAX_ITEMS,
   ITEM_MAX_QUANTITY,
@@ -35,6 +36,18 @@ const shortageIds = ref([])
 const acting = ref(false)
 /** 正在保存数量的商品 ID —— 用于禁用输入框并显示「保存中」 */
 const savingId = ref('')
+
+/* ---------------- 结算：选择收货地址（FR-048 / TBD-07） ---------------- */
+
+const checkoutVisible = ref(false)
+const addressLoading = ref(false)
+const addresses = ref([])
+const selectedAddressId = ref('')
+const submittingCheckout = ref(false)
+
+const selectedAddress = computed(
+  () => addresses.value.find((item) => item.id === selectedAddressId.value) || null,
+)
 
 const selectedItems = computed(() =>
   items.value.filter((item) => selectedIds.value.includes(item.productId)),
@@ -228,6 +241,10 @@ function extractShortages(details) {
   }))
 }
 
+/**
+ * 点击「去结算」：先登录校验，再打开地址选择弹窗。
+ * 下单只能选已有地址，新增/编辑在「地址管理」完成（TBD-07）。
+ */
 async function onCheckout() {
   if (!selectedIds.value.length) {
     ElMessage.warning('请先选择要下单的商品')
@@ -250,12 +267,45 @@ async function onCheckout() {
     return
   }
 
-  acting.value = true
+  checkoutVisible.value = true
+  addressLoading.value = true
   try {
-    const data = await shopStore.checkout([...selectedIds.value])
+    const data = await listAddresses()
+    addresses.value = (data.items || []).map(normalizeAddress)
+    const preferred =
+      addresses.value.find((address) => address.isDefault) || addresses.value[0]
+    selectedAddressId.value = preferred?.id || ''
+  } catch (error) {
+    ElMessage.error(error.message)
+    addresses.value = []
+    selectedAddressId.value = ''
+  } finally {
+    addressLoading.value = false
+  }
+}
+
+function goAddresses() {
+  checkoutVisible.value = false
+  router.push({ name: 'customer-addresses' })
+}
+
+async function submitCheckout() {
+  if (!selectedAddressId.value) {
+    ElMessage.warning('请选择收货地址')
+    return
+  }
+  if (submittingCheckout.value) return
+
+  submittingCheckout.value = true
+  try {
+    const data = await shopStore.checkout(
+      [...selectedIds.value],
+      selectedAddressId.value,
+    )
     const order = data?.order || data
-    ElMessage.success(data?.message || '下单成功')
+    ElMessage.success(data?.message || '下单成功，请尽快完成支付')
     selectedIds.value = []
+    checkoutVisible.value = false
     if (order?.id) {
       router.push({
         name: 'customer-order-detail',
@@ -274,6 +324,7 @@ async function onCheckout() {
         .filter(Boolean)
         .join('、')
       selectedIds.value = selectedIds.value.filter((id) => !ids.includes(id))
+      checkoutVisible.value = false
       ElMessageBox.alert(
         `以下商品库存不足：${names || '部分商品'}。已从本次选择中剔除，请调整数量或移除后再下单；其他商品可正常下单。`,
         '部分商品缺货',
@@ -287,7 +338,7 @@ async function onCheckout() {
       ElMessage.error(error.message)
     }
   } finally {
-    acting.value = false
+    submittingCheckout.value = false
   }
 }
 
@@ -454,6 +505,74 @@ onMounted(load)
         </button>
       </div>
     </div>
+
+    <el-dialog
+      v-model="checkoutVisible"
+      title="确认订单"
+      width="480px"
+      append-to-body
+      :close-on-click-modal="!submittingCheckout"
+    >
+      <div v-loading="addressLoading" class="checkout">
+        <p class="checkout__label">收货地址</p>
+
+        <template v-if="addresses.length">
+          <el-radio-group v-model="selectedAddressId" class="checkout__addresses">
+            <el-radio
+              v-for="address in addresses"
+              :key="address.id"
+              :value="address.id"
+              border
+              class="checkout__address"
+            >
+              <span class="checkout__receiver">
+                {{ address.receiver }} {{ address.phone }}
+                <el-tag v-if="address.isDefault" size="small" type="primary">
+                  默认
+                </el-tag>
+              </span>
+              <span class="checkout__text">{{ address.fullAddress }}</span>
+            </el-radio>
+          </el-radio-group>
+
+          <el-button link type="primary" @click="goAddresses">
+            管理收货地址 →
+          </el-button>
+        </template>
+
+        <EmptyState
+          v-else-if="!addressLoading"
+          icon="📍"
+          text="还没有收货地址"
+          hint="下单前需要先添加收货地址"
+        >
+          <el-button type="primary" @click="goAddresses">去添加地址</el-button>
+        </EmptyState>
+
+        <div class="checkout__summary">
+          <span>共 {{ selectedQuantity }} 件</span>
+          <span class="price">{{ formatPrice(selectedAmount) }}</span>
+        </div>
+
+        <p class="checkout__note">
+          下单后订单进入「待支付」，需在 24 小时内完成支付；本期不含运费。
+        </p>
+      </div>
+
+      <template #footer>
+        <el-button :disabled="submittingCheckout" @click="checkoutVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :disabled="!selectedAddressId"
+          :loading="submittingCheckout"
+          @click="submitCheckout"
+        >
+          提交订单
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -677,5 +796,75 @@ onMounted(load)
 
 .cart__link {
   color: var(--c-primary);
+}
+
+/* ---------------- 结算弹窗 ---------------- */
+
+.checkout {
+  min-height: 120px;
+}
+
+.checkout__label {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--c-text-sub);
+}
+
+.checkout__addresses {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-bottom: var(--sp-2);
+}
+
+.checkout__address {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  white-space: normal;
+}
+
+.checkout__address :deep(.el-radio__label) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  white-space: normal;
+}
+
+.checkout__receiver {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.checkout__text {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--c-text-sub);
+  word-break: break-all;
+}
+
+.checkout__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--c-text-sub);
+  border-top: 1px solid var(--c-border);
+}
+
+.checkout__note {
+  margin: var(--sp-2) 0 0;
+  font-size: 12px;
+  color: var(--c-text-weak);
 }
 </style>

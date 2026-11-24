@@ -4,15 +4,18 @@ import { useCustomerStore } from '@/stores/customer'
 import { useSellerStore } from '@/stores/seller'
 
 /**
- * 路由表 —— 对应《需求规格说明书-挑战B升级版》。
+ * 路由表 —— 对应《需求规格说明书-挑战C升级版》。
  *
- * 挑战 A 的「购买意向 / 排队 / 冻结 / 历史商品」入口已全部移除，
- * 由「收藏 / 购物车 / 订单 5 态」取代。
+ * 挑战 C 在 B 的「收藏 / 购物车 / 订单 5 态」之上新增：
+ *   - 线上支付（待支付、已支付 2 态）
+ *   - 收货地址管理 + 物流查询
+ *   - 按订单项发起售后服务
  *
  * 刻意不存在的路由：
- *   - 商品详情页「立即购买」旁路（TBD-14：下单必经购物车）
- *   - 卖家注册 / 退出登录（FR-036）
+ *   - 商品详情页「立即购买」旁路（下单必经购物车）
+ *   - 卖家注册 / 退出登录（FR-035）
  *   - 已发布商品编辑（FR-007，仅库存可调）
+ *   - 下单时新建/编辑收货地址（TBD-07：只能选已有地址）
  */
 const routes = [
   {
@@ -75,6 +78,24 @@ const routes = [
         component: () => import('@/views/buyer/ProfileView.vue'),
         meta: { title: '个人中心', requiresCustomer: true },
       },
+      {
+        path: 'my/addresses',
+        name: 'customer-addresses',
+        component: () => import('@/views/buyer/AddressesView.vue'),
+        meta: { title: '收货地址', requiresCustomer: true },
+      },
+      {
+        path: 'my/aftersales',
+        name: 'customer-aftersales',
+        component: () => import('@/views/buyer/AfterSalesView.vue'),
+        meta: { title: '售后服务', requiresCustomer: true },
+      },
+      {
+        path: 'my/aftersales/:id',
+        name: 'customer-aftersale-detail',
+        component: () => import('@/views/buyer/AfterSaleDetailView.vue'),
+        meta: { title: '售后详情', requiresCustomer: true },
+      },
     ],
   },
   {
@@ -123,6 +144,12 @@ const routes = [
         name: 'seller-order-detail',
         component: () => import('@/views/seller/OrderDetailView.vue'),
         meta: { title: '订单详情' },
+      },
+      {
+        path: 'aftersales',
+        name: 'seller-aftersales',
+        component: () => import('@/views/seller/AfterSalesView.vue'),
+        meta: { title: '售后管理' },
       },
       {
         path: 'customers',

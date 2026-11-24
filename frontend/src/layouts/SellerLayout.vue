@@ -18,6 +18,7 @@ const navItems = [
   { name: 'seller-publish', label: '发布商品', icon: '➕' },
   { name: 'seller-categories', label: '类别管理', icon: '🗂️' },
   { name: 'seller-orders', label: '订单管理', icon: '🧾' },
+  { name: 'seller-aftersales', label: '售后管理', icon: '🛠️' },
   { name: 'seller-customers', label: '客户台账', icon: '👥' },
   { name: 'seller-password', label: '修改密码', icon: '🔑' },
   { name: 'seller-logs', label: '操作日志', icon: '📋' },

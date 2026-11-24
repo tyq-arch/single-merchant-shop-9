@@ -14,6 +14,11 @@ import { MAX_PRODUCT_IMAGES, uploadImage, validateImage } from '@/api/file'
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   max: { type: Number, default: MAX_PRODUCT_IMAGES },
+  /** 上传函数，默认上传商品图；售后图片传入 uploadAfterSaleImage */
+  uploader: { type: Function, default: uploadImage },
+  /** 是否给第 1 张图打「主图」角标（商品图需要，售后图片不需要） */
+  showPrimary: { type: Boolean, default: true },
+  hint: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -50,7 +55,7 @@ async function onFiles(event) {
       continue
     }
     try {
-      const data = await uploadImage(file)
+      const data = await props.uploader(file)
       next.push(data.url)
     } catch (err) {
       ElMessage.error(`${file.name}：${err.message}`)
@@ -72,8 +77,8 @@ function remove(index) {
   <div class="image-uploader">
     <div class="image-uploader__grid">
       <div v-for="(url, index) in modelValue" :key="url" class="image-uploader__item">
-        <img :src="url" :alt="`商品图片 ${index + 1}`" />
-        <span v-if="index === 0" class="image-uploader__badge">主图</span>
+        <img :src="url" :alt="`图片 ${index + 1}`" />
+        <span v-if="showPrimary && index === 0" class="image-uploader__badge">主图</span>
         <button
           class="image-uploader__remove"
           type="button"
@@ -97,7 +102,7 @@ function remove(index) {
     </div>
 
     <p class="image-uploader__hint">
-      最多 {{ max }} 张，仅 JPG / PNG，单张 ≤5MB；第 1 张为主图，顺序按上传固定。
+      {{ hint || `最多 ${max} 张，仅 JPG / PNG，单张 ≤5MB；第 1 张为主图，顺序按上传固定。` }}
     </p>
 
     <input

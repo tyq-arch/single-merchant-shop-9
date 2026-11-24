@@ -147,6 +147,8 @@ onMounted(load)
         <router-link to="/favorites">我的收藏</router-link>
         <router-link to="/cart">购物车</router-link>
         <router-link to="/my/orders">我的订单</router-link>
+        <router-link to="/my/addresses">收货地址</router-link>
+        <router-link to="/my/aftersales">售后服务</router-link>
       </div>
 
       <div class="password-card">
@@ -236,7 +238,8 @@ onMounted(load)
 
 .profile__links {
   display: flex;
-  gap: var(--sp-4);
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-4);
   margin: var(--sp-3) 0;
   font-size: var(--fs-sm);
 }

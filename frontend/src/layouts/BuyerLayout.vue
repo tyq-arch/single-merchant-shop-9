@@ -65,7 +65,7 @@ function goBack() {
     </main>
 
     <footer class="buyer-footer">
-      本店为单卖家线下交易，一手交钱一手交货
+      线上支付 · 快递配送 · 售后服务
     </footer>
   </div>
 </template>
