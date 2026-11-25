@@ -125,6 +125,11 @@ public class SecurityService {
         }
     }
 
+    /** 支付回调验签：对回调关键字段做 HMAC-SHA256 十六进制签名（NFR-013）。 */
+    public String hmacHex(String payload) {
+        return sign(payload);
+    }
+
     private static String hex(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) {

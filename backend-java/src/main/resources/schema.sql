@@ -192,3 +192,105 @@ CREATE TABLE IF NOT EXISTS guest_cart_item (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_guest_cart ON guest_cart_item(guest_id, product_id);
+
+-- ============================================================
+-- 挑战C（买家端）：收货地址 / 线上支付 / 退款 / 配送物流 / 售后服务
+-- 订单状态：待支付 → 已支付 → 商家确认 → 备货完成 → 开始发货 → 交易完成（+已取消）
+-- 下单即占用库存；已支付订单取消自动退款；待支付超 24 小时自动取消并回补
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS customer_address (
+    id             TEXT PRIMARY KEY,
+    customer_id    TEXT NOT NULL REFERENCES customer(id),
+    receiver_name  TEXT NOT NULL,
+    receiver_phone TEXT NOT NULL,
+    province       TEXT NOT NULL,
+    city           TEXT NOT NULL,
+    district       TEXT NOT NULL,
+    detail         TEXT NOT NULL,
+    postal_code    TEXT,
+    is_default     INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_address_customer ON customer_address(customer_id, is_default DESC);
+
+CREATE TABLE IF NOT EXISTS payment (
+    id             TEXT PRIMARY KEY,
+    order_id       TEXT NOT NULL REFERENCES shop_order(id),
+    payment_no     TEXT NOT NULL UNIQUE,
+    method         TEXT NOT NULL,
+    amount_cents   INTEGER NOT NULL CHECK (amount_cents >= 0),
+    status         TEXT NOT NULL,
+    transaction_no TEXT,
+    failure_reason TEXT,
+    paid_at        TEXT,
+    created_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_payment_order ON payment(order_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS refund (
+    id           TEXT PRIMARY KEY,
+    order_id     TEXT NOT NULL REFERENCES shop_order(id),
+    payment_id   TEXT NOT NULL REFERENCES payment(id),
+    refund_no    TEXT NOT NULL UNIQUE,
+    amount_cents INTEGER NOT NULL,
+    channel      TEXT NOT NULL,
+    status       TEXT NOT NULL,
+    reason       TEXT,
+    refunded_at  TEXT NOT NULL,
+    created_at   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_refund_order ON refund(order_id);
+
+CREATE TABLE IF NOT EXISTS shipment (
+    id          TEXT PRIMARY KEY,
+    order_id    TEXT NOT NULL UNIQUE REFERENCES shop_order(id),
+    carrier     TEXT NOT NULL,
+    tracking_no TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    shipped_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS shipment_track (
+    id          TEXT PRIMARY KEY,
+    shipment_id TEXT NOT NULL REFERENCES shipment(id) ON DELETE CASCADE,
+    status      TEXT NOT NULL,
+    description TEXT,
+    occurred_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_track_shipment ON shipment_track(shipment_id, occurred_at);
+
+CREATE TABLE IF NOT EXISTS after_sale (
+    id            TEXT PRIMARY KEY,
+    after_sale_no TEXT NOT NULL UNIQUE,
+    order_id      TEXT NOT NULL REFERENCES shop_order(id),
+    order_item_id TEXT NOT NULL REFERENCES order_item(id),
+    customer_id   TEXT NOT NULL REFERENCES customer(id),
+    title         TEXT NOT NULL,
+    description   TEXT NOT NULL,
+    status        TEXT NOT NULL,
+    result        TEXT,
+    result_note   TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_after_sale_customer ON after_sale(customer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_after_sale_item ON after_sale(order_item_id);
+
+CREATE TABLE IF NOT EXISTS after_sale_image (
+    id            TEXT PRIMARY KEY,
+    after_sale_id TEXT NOT NULL REFERENCES after_sale(id) ON DELETE CASCADE,
+    url           TEXT NOT NULL,
+    sort_order    INTEGER NOT NULL,
+    created_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_after_sale_image ON after_sale_image(after_sale_id, sort_order);

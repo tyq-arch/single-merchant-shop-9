@@ -174,4 +174,99 @@ public final class Serializers {
         item.put("created_at", Jdbc.strOf(row, "created_at"));
         return item;
     }
+
+    // --------------------------- 挑战C：收货地址 / 支付 / 物流 / 售后 ---------------------------
+
+    /** 收货地址（FR-046 / FR-047）。 */
+    public static Map<String, Object> address(Map<String, Object> row, boolean masked) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("receiver_name", Jdbc.strOf(row, "receiver_name"));
+        String phone = Jdbc.strOf(row, "receiver_phone");
+        item.put("receiver_phone", masked ? Utils.maskPhone(phone) : phone);
+        item.put("province", Jdbc.strOf(row, "province"));
+        item.put("city", Jdbc.strOf(row, "city"));
+        item.put("district", Jdbc.strOf(row, "district"));
+        item.put("detail", Jdbc.strOf(row, "detail"));
+        item.put("postal_code", Jdbc.strOf(row, "postal_code"));
+        item.put("region", Jdbc.strOf(row, "province") + Jdbc.strOf(row, "city") + Jdbc.strOf(row, "district"));
+        item.put("is_default", Jdbc.intOf(row, "is_default") == 1);
+        item.put("created_at", Jdbc.strOf(row, "created_at"));
+        item.put("updated_at", Jdbc.strOf(row, "updated_at"));
+        return item;
+    }
+
+    /** 支付记录（FR-041 / FR-045）。 */
+    public static Map<String, Object> payment(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("payment_no", Jdbc.strOf(row, "payment_no"));
+        item.put("method", Jdbc.strOf(row, "method"));
+        item.put("method_label", Enums.PaymentMethod.label(Jdbc.strOf(row, "method")));
+        item.put("amount", Utils.priceFromCents(Jdbc.integerOrNull(row, "amount_cents")));
+        item.put("amount_cents", Jdbc.intOf(row, "amount_cents"));
+        item.put("status", Jdbc.strOf(row, "status"));
+        item.put("status_label", Enums.PaymentStatus.label(Jdbc.strOf(row, "status")));
+        item.put("transaction_no", Jdbc.strOf(row, "transaction_no"));
+        item.put("failure_reason", Jdbc.strOf(row, "failure_reason"));
+        item.put("paid_at", Jdbc.strOf(row, "paid_at"));
+        item.put("created_at", Jdbc.strOf(row, "created_at"));
+        return item;
+    }
+
+    public static Map<String, Object> refund(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("refund_no", Jdbc.strOf(row, "refund_no"));
+        item.put("amount", Utils.priceFromCents(Jdbc.integerOrNull(row, "amount_cents")));
+        item.put("amount_cents", Jdbc.intOf(row, "amount_cents"));
+        item.put("channel", Jdbc.strOf(row, "channel"));
+        item.put("channel_label", Enums.PaymentMethod.label(Jdbc.strOf(row, "channel")));
+        item.put("status", Jdbc.strOf(row, "status"));
+        item.put("status_label", Enums.RefundStatus.label(Jdbc.strOf(row, "status")));
+        item.put("reason", Jdbc.strOf(row, "reason"));
+        item.put("refunded_at", Jdbc.strOf(row, "refunded_at"));
+        return item;
+    }
+
+    public static Map<String, Object> shipment(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("carrier", Jdbc.strOf(row, "carrier"));
+        item.put("tracking_no", Jdbc.strOf(row, "tracking_no"));
+        item.put("status", Jdbc.strOf(row, "status"));
+        item.put("status_label", Enums.ShipmentStatus.label(Jdbc.strOf(row, "status")));
+        item.put("shipped_at", Jdbc.strOf(row, "shipped_at"));
+        item.put("updated_at", Jdbc.strOf(row, "updated_at"));
+        return item;
+    }
+
+    public static Map<String, Object> shipmentTrack(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("status", Jdbc.strOf(row, "status"));
+        item.put("status_label", Enums.ShipmentStatus.label(Jdbc.strOf(row, "status")));
+        item.put("description", Jdbc.strOf(row, "description"));
+        item.put("occurred_at", Jdbc.strOf(row, "occurred_at"));
+        return item;
+    }
+
+    /** 售后申请（FR-051 / FR-052）；images 由调用方补充。 */
+    public static Map<String, Object> afterSale(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", Jdbc.strOf(row, "id"));
+        item.put("after_sale_no", Jdbc.strOf(row, "after_sale_no"));
+        item.put("order_id", Jdbc.strOf(row, "order_id"));
+        item.put("order_item_id", Jdbc.strOf(row, "order_item_id"));
+        item.put("product_id", Jdbc.strOf(row, "product_id"));
+        item.put("product_name", Jdbc.strOf(row, "product_name"));
+        item.put("title", Jdbc.strOf(row, "title"));
+        item.put("description", Jdbc.strOf(row, "description"));
+        item.put("status", Jdbc.strOf(row, "status"));
+        item.put("status_label", Enums.AfterSaleStatus.label(Jdbc.strOf(row, "status")));
+        item.put("result", Jdbc.strOf(row, "result"));
+        item.put("result_note", Jdbc.strOf(row, "result_note"));
+        item.put("created_at", Jdbc.strOf(row, "created_at"));
+        item.put("updated_at", Jdbc.strOf(row, "updated_at"));
+        return item;
+    }
 }

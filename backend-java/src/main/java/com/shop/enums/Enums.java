@@ -87,9 +87,10 @@ public final class Enums {
         }
     }
 
-    /** 挑战B 订单状态：5 态 + 已取消。 */
+    /** 挑战C 订单状态：待支付/已支付 + 商家推进 4 态 + 已取消（业务流见 3.4）。 */
     public static final class OrderStatus {
-        public static final String CUSTOMER_PLACED = "CUSTOMER_PLACED";
+        public static final String PENDING_PAYMENT = "PENDING_PAYMENT";
+        public static final String PAID = "PAID";
         public static final String SELLER_CONFIRMED = "SELLER_CONFIRMED";
         public static final String STOCK_READY = "STOCK_READY";
         public static final String SHIPPING = "SHIPPING";
@@ -98,35 +99,17 @@ public final class Enums {
 
         /** 客户可取消：尚未到「开始发货」（FR-028）。 */
         public static final Set<String> CUSTOMER_CANCELLABLE = Collections.unmodifiableSet(
-                new HashSet<>(Arrays.asList(CUSTOMER_PLACED, SELLER_CONFIRMED, STOCK_READY)));
-        /** 商家可取消：交易完成之前（FR-029）。 */
-        public static final Set<String> SELLER_CANCELLABLE = Collections.unmodifiableSet(
-                new HashSet<>(Arrays.asList(CUSTOMER_PLACED, SELLER_CONFIRMED, STOCK_READY, SHIPPING)));
-
-        /**
-         * 状态单向推进（FR-026）：不可跳序、不可回退。
-         *
-         * @return 下一状态；非法或终态返回 null，表示不可推进。
-         */
-        public static String next(String status) {
-            if (CUSTOMER_PLACED.equals(status)) {
-                return SELLER_CONFIRMED;
-            }
-            if (SELLER_CONFIRMED.equals(status)) {
-                return STOCK_READY;
-            }
-            if (STOCK_READY.equals(status)) {
-                return SHIPPING;
-            }
-            if (SHIPPING.equals(status)) {
-                return COMPLETED;
-            }
-            return null;
-        }
+                new HashSet<>(Arrays.asList(PENDING_PAYMENT, PAID, SELLER_CONFIRMED, STOCK_READY)));
+        /** 取消需退款：已支付及之后、开始发货之前（FR-044）。 */
+        public static final Set<String> REFUNDABLE = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(PAID, SELLER_CONFIRMED, STOCK_READY)));
 
         public static String label(String status) {
-            if (CUSTOMER_PLACED.equals(status)) {
-                return "客户下单";
+            if (PENDING_PAYMENT.equals(status)) {
+                return "待支付";
+            }
+            if (PAID.equals(status)) {
+                return "已支付";
             }
             if (SELLER_CONFIRMED.equals(status)) {
                 return "商家确认";
@@ -142,6 +125,100 @@ public final class Enums {
             }
             if (CANCELLED.equals(status)) {
                 return "已取消";
+            }
+            return status;
+        }
+    }
+
+    /** 支付方式（FR-040）：银行卡 / 信用卡 / 支付宝 / 微信。 */
+    public static final class PaymentMethod {
+        public static final String BANK_CARD = "BANK_CARD";
+        public static final String CREDIT_CARD = "CREDIT_CARD";
+        public static final String ALIPAY = "ALIPAY";
+        public static final String WECHAT = "WECHAT";
+
+        public static final Set<String> ALL = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(BANK_CARD, CREDIT_CARD, ALIPAY, WECHAT)));
+
+        public static String label(String method) {
+            if (BANK_CARD.equals(method)) {
+                return "银行卡";
+            }
+            if (CREDIT_CARD.equals(method)) {
+                return "信用卡";
+            }
+            if (ALIPAY.equals(method)) {
+                return "支付宝";
+            }
+            if (WECHAT.equals(method)) {
+                return "微信支付";
+            }
+            return method;
+        }
+    }
+
+    /** 支付状态：成功 / 失败（失败可重新发起，FR-042）。 */
+    public static final class PaymentStatus {
+        public static final String SUCCESS = "SUCCESS";
+        public static final String FAILED = "FAILED";
+
+        public static String label(String status) {
+            return SUCCESS.equals(status) ? "支付成功" : "支付失败";
+        }
+    }
+
+    /** 退款状态：原路退回成功（FR-045）。 */
+    public static final class RefundStatus {
+        public static final String SUCCESS = "SUCCESS";
+
+        public static String label(String status) {
+            return SUCCESS.equals(status) ? "退款成功" : status;
+        }
+    }
+
+    /** 物流状态：由商家手动更新（TBD-09）。 */
+    public static final class ShipmentStatus {
+        public static final String SHIPPED = "SHIPPED";
+        public static final String IN_TRANSIT = "IN_TRANSIT";
+        public static final String DELIVERING = "DELIVERING";
+        public static final String SIGNED = "SIGNED";
+
+        public static String label(String status) {
+            if (SHIPPED.equals(status)) {
+                return "已发货";
+            }
+            if (IN_TRANSIT.equals(status)) {
+                return "运输中";
+            }
+            if (DELIVERING.equals(status)) {
+                return "派送中";
+            }
+            if (SIGNED.equals(status)) {
+                return "已签收";
+            }
+            return status;
+        }
+    }
+
+    /** 售后申请内部追溯状态（TBD-13）。 */
+    public static final class AfterSaleStatus {
+        public static final String PENDING = "PENDING";
+        public static final String NEGOTIATING = "NEGOTIATING";
+        public static final String RESOLVED = "RESOLVED";
+        public static final String REJECTED = "REJECTED";
+
+        public static String label(String status) {
+            if (PENDING.equals(status)) {
+                return "待处理";
+            }
+            if (NEGOTIATING.equals(status)) {
+                return "协商中";
+            }
+            if (RESOLVED.equals(status)) {
+                return "已解决";
+            }
+            if (REJECTED.equals(status)) {
+                return "已拒绝";
             }
             return status;
         }
@@ -186,10 +263,5 @@ public final class Enums {
         public static final String START_TRANSACTION = "START_TRANSACTION";
         public static final String TRANSACTION_SUCCESS = "TRANSACTION_SUCCESS";
         public static final String TRANSACTION_FAILED = "TRANSACTION_FAILED";
-        public static final String CONFIRM_ORDER = "CONFIRM_ORDER";
-        public static final String READY_ORDER = "READY_ORDER";
-        public static final String SHIP_ORDER = "SHIP_ORDER";
-        public static final String COMPLETE_ORDER = "COMPLETE_ORDER";
-        public static final String CANCEL_ORDER = "CANCEL_ORDER";
     }
 }

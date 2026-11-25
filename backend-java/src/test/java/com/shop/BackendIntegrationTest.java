@@ -2,7 +2,15 @@ package com.shop;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shop.db.Db;
+import com.shop.db.Jdbc;
+import com.shop.security.SecurityService;
+import com.shop.services.OrderService;
+import com.shop.util.Utils;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -32,10 +40,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 挑战B 买家端端到端集成测试：收藏、购物车、游客临时预选与登录合并、
- * 购物车多选下单与库存占用、缺货剔除、订单历史、客户取消回补、多选转收藏。
+ * 买家端端到端集成测试：
+ * <ol>
+ *   <li>挑战B：收藏、购物车、游客临时预选与登录合并、多选下单与库存占用、缺货剔除、取消回补；</li>
+ *   <li>挑战C：收货地址、线上支付与失败重试、回调验签幂等、取消退款、超时取消、物流查询、售后申请。</li>
+ * </ol>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BackendIntegrationTest {
 
     private static Path dataDir;
@@ -56,6 +68,15 @@ class BackendIntegrationTest {
 
     @Autowired
     private ObjectMapper json;
+
+    @Autowired
+    private Db db;
+
+    @Autowired
+    private SecurityService security;
+
+    @Autowired
+    private OrderService orderService;
 
     // --------------------------- 请求工具 ---------------------------
 
@@ -150,6 +171,7 @@ class BackendIntegrationTest {
     // --------------------------- 测试主体 ---------------------------
 
     @Test
+    @Order(1)
     void buyerFlowChallengeB() throws Exception {
         // 0. 服务信息与卖家登录
         assertEquals("/docs", get("/", null).path("docs").asText());
@@ -165,7 +187,7 @@ class BackendIntegrationTest {
                 map("name", "杯子", "parent_id", topId), seller).path("category").path("id").asText();
 
         // 2. 商品：A 库存 2、B 库存 5、C 库存 0（售罄下架）
-        String imageUrl = uploadPng(seller);
+        String imageUrl = uploadPng();
         String cupA = publish(seller, "手工陶瓷杯", 99.9, 2, leafId,
                 new ArrayList<>(Arrays.asList(imageUrl))).path("product").path("id").asText();
         String cupB = publish(seller, "玻璃杯", 29.9, 5, leafId, new ArrayList<String>())
@@ -208,7 +230,19 @@ class BackendIntegrationTest {
         assertEquals(0, guestCartAfter.path("item_count").asInt());
         call(HttpMethod.GET, "/api/guest/favorites", null, null, guest);
 
-        // 5. 登录后：收藏含 A、购物车含 B×2
+        // 5. 收货地址：首条自动设为默认（挑战C 下单前置条件）
+        JsonNode firstAddress = call(HttpMethod.POST, "/api/customer/addresses",
+                map("receiver_name", "爱丽丝", "receiver_phone", "13800000001",
+                        "province", "江苏省", "city", "南京市", "district", "鼓楼区",
+                        "detail", "一号楼 101", "postal_code", "210000"), alice).path("address");
+        assertTrue(firstAddress.path("is_default").asBoolean());
+        assertEquals("江苏省南京市鼓楼区", firstAddress.path("region").asText());
+        assertEquals(422, status(HttpMethod.POST, "/api/customer/addresses",
+                map("receiver_name", "错号码", "receiver_phone", "123",
+                        "province", "江苏省", "city", "南京市", "district", "鼓楼区",
+                        "detail", "二号楼 202"), alice));
+
+        // 6. 登录后：收藏含 A、购物车含 B×2
         JsonNode favorites = get("/api/customer/favorites", alice);
         assertEquals(1, favorites.path("total").asInt());
         assertEquals(cupA, favorites.path("items").get(0).path("product_id").asText());
@@ -218,7 +252,7 @@ class BackendIntegrationTest {
         assertEquals(2, cart.path("items").get(0).path("quantity").asInt());
         assertEquals(59.8, cart.path("items").get(0).path("subtotal").asDouble(), 0.001);
 
-        // 6. 购物车：同商品唯一、数量累加、上限 99
+        // 7. 购物车：同商品唯一、数量累加、上限 99
         addCart(cupA, 1, alice);
         JsonNode afterAdd = addCart(cupA, 1, alice);
         assertEquals(2, afterAdd.path("item_count").asInt());
@@ -230,10 +264,13 @@ class BackendIntegrationTest {
         assertEquals(409, status(HttpMethod.POST, "/api/customer/favorites",
                 map("product_id", cupA), alice));
 
-        // 7. 多选下单：生成含多订单项订单并占用库存，购物车项自动移除
+        // 8. 多选下单：未传地址时带出默认地址，订单进入待支付并占用库存
         JsonNode order1 = checkout(new ArrayList<>(Arrays.asList(cupA, cupB)), alice).path("order");
-        assertEquals("CUSTOMER_PLACED", order1.path("status").asText());
-        assertEquals("客户下单", order1.path("status_label").asText());
+        assertEquals("PENDING_PAYMENT", order1.path("status").asText());
+        assertEquals("待支付", order1.path("status_label").asText());
+        assertTrue(order1.path("can_pay").asBoolean());
+        assertEquals("一号楼 101", order1.path("address").path("detail").asText());
+        assertEquals("UNPAID", order1.path("payment_status").asText());
         assertTrue(order1.path("order_no").asText().matches("\\d{8}-\\d{4}"),
                 order1.path("order_no").asText());
         assertEquals(2, order1.path("item_count").asInt());
@@ -347,6 +384,207 @@ class BackendIntegrationTest {
                 map("product_ids", Arrays.asList(cupA)), null));
     }
 
+    @Test
+    @Order(2)
+    void buyerFlowChallengeC() throws Exception {
+        String seller = call(HttpMethod.POST, "/api/seller/login",
+                map("username", "seller", "password", "seller123"), null).path("token").asText();
+        String topId = call(HttpMethod.POST, "/api/seller/categories",
+                map("name", "生活电器"), seller).path("category").path("id").asText();
+        String leafId = call(HttpMethod.POST, "/api/seller/categories",
+                map("name", "电水壶", "parent_id", topId), seller).path("category").path("id").asText();
+        String kettle = publish(seller, "不锈钢电水壶", 50, 10, leafId, new ArrayList<String>())
+                .path("product").path("id").asText();
+
+        register("carol", "13800000003", "三号门");
+        String carol = customerToken("carol");
+
+        // 1. 收货地址为空时下单被拒（FR-048）
+        assertEquals(0, get("/api/customer/addresses", carol).path("total").asInt());
+        addCart(kettle, 1, carol);
+        JsonNode noAddress = call(HttpMethod.POST, "/api/customer/orders",
+                map("product_ids", Arrays.asList(kettle)), carol);
+        assertEquals(409, status(HttpMethod.POST, "/api/customer/orders",
+                map("product_ids", Arrays.asList(kettle)), carol));
+        assertTrue(noAddress.path("error").path("message").asText().contains("收货地址"),
+                noAddress.toString());
+
+        // 2. 地址簿：首条自动默认、可切换默认、可修改、可删除
+        String home = createAddress(carol, "张卡罗", "13800000003", "上海市", "上海市", "徐汇区",
+                "漕溪路 1 号", true);
+        String office = createAddress(carol, "张卡罗", "13800000003", "上海市", "上海市", "浦东新区",
+                "世纪大道 2 号", false);
+        assertEquals(200, status(HttpMethod.POST, "/api/customer/addresses/" + office + "/default",
+                null, carol));
+        assertEquals(200, status(HttpMethod.PATCH, "/api/customer/addresses/" + home,
+                map("receiver_name", "张卡罗", "receiver_phone", "13800000003",
+                        "province", "上海市", "city", "上海市", "district", "徐汇区",
+                        "detail", "漕溪路 9 号"), carol));
+        JsonNode addressList = get("/api/customer/addresses", carol);
+        assertEquals(2, addressList.path("total").asInt());
+        assertTrue(findAddress(addressList.path("items"), office).path("is_default").asBoolean());
+        assertFalse(findAddress(addressList.path("items"), home).path("is_default").asBoolean());
+        assertEquals(422, status(HttpMethod.POST, "/api/customer/addresses",
+                map("receiver_name", "张卡罗", "receiver_phone", "13800000003",
+                        "province", "上海市", "city", "上海市", "district", "徐汇区",
+                        "detail", "漕溪路 1 号", "postal_code", "12345"), carol));
+
+        // 3. 下单固化默认地址快照，订单进入待支付
+        JsonNode order = checkout(Arrays.asList(kettle), carol).path("order");
+        assertEquals("PENDING_PAYMENT", order.path("status").asText());
+        assertEquals("浦东新区", order.path("address").path("district").asText());
+        assertEquals("世纪大道 2 号", order.path("address").path("detail").asText());
+        String orderId = order.path("id").asText();
+        String orderItemId = order.path("items").get(0).path("id").asText();
+        assertEquals(9, available(kettle));
+
+        // 4. 支付：非法方式 422；失败保持待支付；成功后转已支付；重复支付 409
+        assertEquals(422, status(HttpMethod.POST, "/api/customer/orders/" + orderId + "/pay",
+                map("payment_method", "CASH"), carol));
+        JsonNode failed = call(HttpMethod.POST, "/api/customer/orders/" + orderId + "/pay",
+                map("payment_method", "ALIPAY", "simulate_result", "FAILED"), carol);
+        assertEquals("FAILED", failed.path("payment").path("status").asText());
+        assertEquals("PENDING_PAYMENT", failed.path("order").path("status").asText());
+        assertEquals("UNPAID", failed.path("order").path("payment_status").asText());
+        JsonNode paid = call(HttpMethod.POST, "/api/customer/orders/" + orderId + "/pay",
+                map("payment_method", "ALIPAY"), carol);
+        assertEquals("PAID", paid.path("order").path("status").asText());
+        assertEquals("已支付", paid.path("order").path("status_label").asText());
+        assertEquals("PAID", paid.path("order").path("payment_status").asText());
+        assertFalse(paid.path("order").path("can_pay").asBoolean());
+        assertEquals(50, paid.path("payment").path("amount").asDouble(), 0.001);
+        assertTrue(paid.path("payment").path("payment_no").asText().startsWith("PAY"));
+        assertTrue(paid.path("payment").path("transaction_no").asText().startsWith("TXN"));
+        assertEquals(409, status(HttpMethod.POST, "/api/customer/orders/" + orderId + "/pay",
+                map("payment_method", "WECHAT"), carol));
+
+        // 5. 支付回调：签名错误 401，签名正确幂等（NFR-013）
+        String paymentId = paid.path("payment").path("id").asText();
+        assertEquals(401, status(HttpMethod.POST, "/api/payments/callback",
+                map("payment_id", paymentId, "transaction_no", "TXN-REPLAY",
+                        "status", "SUCCESS", "signature", "deadbeef"), null));
+        JsonNode callback = call(HttpMethod.POST, "/api/payments/callback",
+                map("payment_id", paymentId, "transaction_no", "TXN-REPLAY", "status", "SUCCESS",
+                        "signature", security.hmacHex(paymentId + "|SUCCESS|TXN-REPLAY")), null);
+        assertTrue(callback.path("idempotent").asBoolean());
+
+        // 6. 已支付订单取消：自动原路退款，占用库存回补（FR-044 / FR-045）
+        JsonNode cancelled = call(HttpMethod.POST, "/api/customer/orders/" + orderId + "/cancel",
+                null, carol).path("order");
+        assertEquals("CANCELLED", cancelled.path("status").asText());
+        assertEquals("REFUNDED", cancelled.path("payment_status").asText());
+        assertEquals("已退款", cancelled.path("payment_status_label").asText());
+        assertEquals("SUCCESS", cancelled.path("refund").path("status").asText());
+        assertEquals(50, cancelled.path("refund").path("amount").asDouble(), 0.001);
+        assertEquals("ALIPAY", cancelled.path("refund").path("channel").asText());
+        assertTrue(cancelled.path("refund").path("refund_no").asText().startsWith("RF"));
+        assertEquals(10, available(kettle));
+
+        // 7. 待支付超过 24 小时：系统自动取消并回补库存（FR-043）
+        addCart(kettle, 2, carol);
+        String pendingId = checkout(Arrays.asList(kettle), carol).path("order").path("id").asText();
+        assertEquals(8, available(kettle));
+        db.transaction(conn -> {
+            Jdbc.update(conn, "UPDATE shop_order SET created_at = ? WHERE id = ?",
+                    Utils.toIso(Utils.now().minusHours(25)), pendingId);
+            return null;
+        });
+        assertEquals(1, orderService.expirePendingOrders());
+        JsonNode expired = get("/api/customer/orders/" + pendingId, carol).path("order");
+        assertEquals("CANCELLED", expired.path("status").asText());
+        assertEquals("SYSTEM", expired.path("cancel_by").asText());
+        assertTrue(expired.path("cancel_reason").asText().contains("24"));
+        assertEquals(10, available(kettle));
+
+        // 8. 物流查询：未发货 404；发货后可查服务商、运单号与轨迹（FR-050）
+        addCart(kettle, 1, carol);
+        String shippingOrderId = checkout(Arrays.asList(kettle), carol).path("order").path("id").asText();
+        assertEquals(404, status(HttpMethod.GET,
+                "/api/customer/orders/" + shippingOrderId + "/shipment", null, carol));
+        String now = Utils.nowIso();
+        db.transaction(conn -> {
+            Jdbc.update(conn, "UPDATE shop_order SET status = ? WHERE id = ?",
+                    "SHIPPING", shippingOrderId);
+            String shipmentId = Utils.newId();
+            Jdbc.update(conn,
+                    "INSERT INTO shipment (id, order_id, carrier, tracking_no, status, shipped_at, updated_at) "
+                            + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    shipmentId, shippingOrderId, "顺丰速运", "SF1234567890", "IN_TRANSIT", now, now);
+            Jdbc.update(conn,
+                    "INSERT INTO shipment_track (id, shipment_id, status, description, occurred_at) "
+                            + "VALUES (?, ?, ?, ?, ?)",
+                    Utils.newId(), shipmentId, "SHIPPED", "商家已发货", now);
+            Jdbc.update(conn,
+                    "INSERT INTO shipment_track (id, shipment_id, status, description, occurred_at) "
+                            + "VALUES (?, ?, ?, ?, ?)",
+                    Utils.newId(), shipmentId, "IN_TRANSIT", "快件已到达转运中心", Utils.toIso(Utils.now().plusHours(1)));
+            return null;
+        });
+        JsonNode shipment = get("/api/customer/orders/" + shippingOrderId + "/shipment", carol)
+                .path("shipment");
+        assertEquals("顺丰速运", shipment.path("carrier").asText());
+        assertEquals("SF1234567890", shipment.path("tracking_no").asText());
+        assertEquals("运输中", shipment.path("status_label").asText());
+        assertEquals(2, shipment.path("tracks").size());
+        JsonNode shippedOrder = get("/api/customer/orders/" + shippingOrderId, carol).path("order");
+        assertEquals("IN_TRANSIT", shippedOrder.path("shipment_status").asText());
+        assertFalse(shippedOrder.path("can_cancel").asBoolean());
+        assertEquals(409, status(HttpMethod.POST,
+                "/api/customer/orders/" + shippingOrderId + "/cancel", null, carol));
+
+        // 9. 售后：仅交易完成可申请；图片格式与数量校验；他人不可见（FR-051 / FR-052）
+        assertEquals(409, status(HttpMethod.POST, "/api/customer/after-sales",
+                map("order_item_id", orderItemId, "title", "漏水", "description", "壶嘴漏水"), carol));
+        db.transaction(conn -> {
+            Jdbc.update(conn, "UPDATE shop_order SET status = ? WHERE id = ?", "COMPLETED", shippingOrderId);
+            return null;
+        });
+        String itemId = get("/api/customer/orders/" + shippingOrderId, carol)
+                .path("order").path("items").get(0).path("id").asText();
+        assertEquals(422, status(HttpMethod.POST, "/api/customer/after-sales",
+                map("order_item_id", itemId, "title", "漏水", "description", "壶嘴漏水",
+                        "image_urls", Arrays.asList("/uploads/a.pdf")), carol));
+        JsonNode afterSale = call(HttpMethod.POST, "/api/customer/after-sales",
+                map("order_item_id", itemId, "title", "漏水", "description", "壶嘴漏水，申请换货",
+                        "image_urls", Arrays.asList("/uploads/a.png")), carol).path("after_sale");
+        assertEquals("PENDING", afterSale.path("status").asText());
+        assertEquals("待处理", afterSale.path("status_label").asText());
+        assertTrue(afterSale.path("after_sale_no").asText().startsWith("AS"));
+        assertEquals("不锈钢电水壶", afterSale.path("product_name").asText());
+        assertEquals(1, afterSale.path("images").size());
+        assertEquals(1, get("/api/customer/after-sales", carol).path("total").asInt());
+        assertEquals(200, status(HttpMethod.GET,
+                "/api/customer/after-sales/" + afterSale.path("id").asText(), null, carol));
+
+        register("dave", "13800000004", "四号门");
+        String dave = customerToken("dave");
+        assertEquals(404, status(HttpMethod.GET,
+                "/api/customer/after-sales/" + afterSale.path("id").asText(), null, dave));
+        assertEquals(409, status(HttpMethod.POST,
+                "/api/customer/orders/" + shippingOrderId + "/cancel", null, carol));
+    }
+
+    private String createAddress(String token, String name, String phone, String province, String city,
+                                 String district, String detail, boolean isDefault) {
+        return call(HttpMethod.POST, "/api/customer/addresses",
+                map("receiver_name", name, "receiver_phone", phone, "province", province, "city", city,
+                        "district", district, "detail", detail, "is_default", isDefault), token)
+                .path("address").path("id").asText();
+    }
+
+    private JsonNode findAddress(JsonNode items, String addressId) {
+        for (JsonNode node : items) {
+            if (addressId.equals(node.path("id").asText())) {
+                return node;
+            }
+        }
+        throw new IllegalStateException("未找到地址：" + addressId);
+    }
+
+    private int available(String productId) {
+        return get("/api/products/" + productId, null).path("product").path("available_stock").asInt();
+    }
+
     private JsonNode findItem(JsonNode items, String productId) {
         for (JsonNode node : items) {
             if (productId.equals(node.path("product_id").asText())) {
@@ -365,7 +603,7 @@ class BackendIntegrationTest {
         throw new IllegalStateException("未找到订单：" + orderId);
     }
 
-    private String uploadPng(String token) {
+    private String uploadPng() {
         byte[] png = new byte[]{(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("file", new ByteArrayResource(png) {
@@ -376,7 +614,6 @@ class BackendIntegrationTest {
         });
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        headers.setBearerAuth(token);
         ResponseEntity<String> response = rest.postForEntity(url("/api/files/images"),
                 new HttpEntity<>(parts, headers), String.class);
         try {

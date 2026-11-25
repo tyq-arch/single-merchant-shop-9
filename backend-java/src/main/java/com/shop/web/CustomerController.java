@@ -3,18 +3,26 @@ package com.shop.web;
 import com.shop.config.AppConfig;
 import com.shop.db.Db;
 import com.shop.db.Jdbc;
+import com.shop.dto.AddressRequest;
+import com.shop.dto.AfterSaleRequest;
 import com.shop.dto.BatchProductRequest;
 import com.shop.dto.CartAddRequest;
 import com.shop.dto.CartUpdateRequest;
 import com.shop.dto.ChangePasswordRequest;
+import com.shop.dto.CheckoutRequest;
 import com.shop.dto.CustomerLoginRequest;
 import com.shop.dto.CustomerRegisterRequest;
 import com.shop.dto.FavoriteRequest;
+import com.shop.dto.PayRequest;
 import com.shop.enums.Enums;
 import com.shop.serializers.Serializers;
+import com.shop.services.AddressService;
+import com.shop.services.AfterSaleService;
 import com.shop.services.AuthService;
 import com.shop.services.OrderService;
+import com.shop.services.PaymentService;
 import com.shop.services.PreselectService;
+import com.shop.services.ShipmentService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,7 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 客户接口（挑战B 买家端）：账号、收藏、购物车、多选下单、订单查询与客户取消。
+ * 客户接口（挑战C 买家端）：账号、收藏、购物车、多选下单、支付、地址、订单、物流、售后。
  *
  * <p>未登录临时收藏/加购见 {@link GuestController}；登录时携带 X-Guest-Id 自动合并。
  */
@@ -43,14 +51,23 @@ public class CustomerController {
     private final AuthService auth;
     private final PreselectService preselect;
     private final OrderService orders;
+    private final AddressService addresses;
+    private final PaymentService payments;
+    private final ShipmentService shipments;
+    private final AfterSaleService afterSales;
 
-    public CustomerController(Db db, AppConfig config, AuthService auth,
-                              PreselectService preselect, OrderService orders) {
+    public CustomerController(Db db, AppConfig config, AuthService auth, PreselectService preselect,
+                              OrderService orders, AddressService addresses, PaymentService payments,
+                              ShipmentService shipments, AfterSaleService afterSales) {
         this.db = db;
         this.config = config;
         this.auth = auth;
         this.preselect = preselect;
         this.orders = orders;
+        this.addresses = addresses;
+        this.payments = payments;
+        this.shipments = shipments;
+        this.afterSales = afterSales;
     }
 
     // --------------------------- 账号 ---------------------------
@@ -205,13 +222,13 @@ public class CustomerController {
 
     // --------------------------- 订单（FR-023 / FR-025 / FR-027 / FR-028 / FR-030） ---------------------------
 
-    /** 从购物车多选下单（下单必经购物车，TBD-14）。 */
+    /** 从购物车多选下单（下单必经购物车，TBD-14），必须选择收货地址（FR-048）。 */
     @PostMapping("/orders")
-    public Map<String, Object> checkout(@RequestBody BatchProductRequest body,
+    public Map<String, Object> checkout(@RequestBody CheckoutRequest body,
                                         @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> customer = auth.requireCustomer(authorization);
-        return db.transaction(conn -> orders.checkout(conn,
-                Jdbc.strOf(customer, "id"), Validation.productIds(body.productIds)));
+        return db.transaction(conn -> orders.checkout(conn, Jdbc.strOf(customer, "id"),
+                Validation.productIds(body.productIds), body.addressId));
     }
 
     @GetMapping("/orders")
@@ -232,11 +249,96 @@ public class CustomerController {
         return db.read(conn -> orders.detail(conn, Jdbc.strOf(customer, "id"), orderId));
     }
 
-    /** 客户取消：仅「开始发货」前可用，取消后占用库存回补（FR-028）。 */
+    /** 客户取消：仅「开始发货」前可用；已支付订单原路退款，占用库存回补（FR-028 / FR-044）。 */
     @PostMapping("/orders/{orderId}/cancel")
     public Map<String, Object> cancelOrder(@PathVariable String orderId,
                                            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> customer = auth.requireCustomer(authorization);
         return db.transaction(conn -> orders.cancel(conn, Jdbc.strOf(customer, "id"), orderId));
+    }
+
+    // --------------------------- 支付（FR-039 ~ FR-042） ---------------------------
+
+    /** 发起支付：待支付订单选择支付方式；失败保持待支付可重试。 */
+    @PostMapping("/orders/{orderId}/pay")
+    public Map<String, Object> pay(@PathVariable String orderId, @RequestBody PayRequest body,
+                                   @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.transaction(conn ->
+                payments.pay(conn, Jdbc.strOf(customer, "id"), orderId, body));
+    }
+
+    // --------------------------- 收货地址（FR-046 ~ FR-048） ---------------------------
+
+    @GetMapping("/addresses")
+    public Map<String, Object> listAddresses(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.read(conn -> addresses.list(conn, Jdbc.strOf(customer, "id")));
+    }
+
+    @PostMapping("/addresses")
+    public Map<String, Object> createAddress(@RequestBody AddressRequest body,
+                                             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.transaction(conn -> addresses.create(conn, Jdbc.strOf(customer, "id"), body));
+    }
+
+    @PatchMapping("/addresses/{addressId}")
+    public Map<String, Object> updateAddress(@PathVariable String addressId, @RequestBody AddressRequest body,
+                                             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.transaction(conn -> addresses.update(conn, Jdbc.strOf(customer, "id"), addressId, body));
+    }
+
+    @DeleteMapping("/addresses/{addressId}")
+    public Map<String, Object> removeAddress(@PathVariable String addressId,
+                                             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.transaction(conn -> addresses.remove(conn, Jdbc.strOf(customer, "id"), addressId));
+    }
+
+    @PostMapping("/addresses/{addressId}/default")
+    public Map<String, Object> setDefaultAddress(@PathVariable String addressId,
+                                                 @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.transaction(conn -> addresses.setDefault(conn, Jdbc.strOf(customer, "id"), addressId));
+    }
+
+    // --------------------------- 物流（FR-050） ---------------------------
+
+    @GetMapping("/orders/{orderId}/shipment")
+    public Map<String, Object> orderShipment(@PathVariable String orderId,
+                                             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.read(conn -> shipments.query(conn, Jdbc.strOf(customer, "id"), orderId));
+    }
+
+    // --------------------------- 售后（FR-051 / FR-052） ---------------------------
+
+    @GetMapping("/after-sales")
+    public Map<String, Object> listAfterSales(@RequestParam(value = "page", required = false) String page,
+                                              @RequestParam(value = "page_size", required = false) String pageSize,
+                                              @RequestParam(value = "status", required = false) String status,
+                                              @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        int current = Validation.page(page);
+        int size = Validation.pageSize(pageSize, config.getDefaultPageSize(), config.getMaxPageSize());
+        return db.read(conn ->
+                afterSales.list(conn, Jdbc.strOf(customer, "id"), status, current, size));
+    }
+
+    @PostMapping("/after-sales")
+    public Map<String, Object> createAfterSale(@RequestBody AfterSaleRequest body,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.transaction(conn -> afterSales.create(conn, Jdbc.strOf(customer, "id"), body));
+    }
+
+    @GetMapping("/after-sales/{afterSaleId}")
+    public Map<String, Object> afterSaleDetail(@PathVariable String afterSaleId,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> customer = auth.requireCustomer(authorization);
+        return db.read(conn -> afterSales.detail(conn, Jdbc.strOf(customer, "id"), afterSaleId));
     }
 }

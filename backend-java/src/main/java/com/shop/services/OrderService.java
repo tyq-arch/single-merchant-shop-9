@@ -1,5 +1,14 @@
 package com.shop.services;
 
+import com.shop.db.Db;
+import com.shop.db.Jdbc;
+import com.shop.enums.Enums;
+import com.shop.errors.ConflictException;
+import com.shop.errors.NotFoundException;
+import com.shop.serializers.Serializers;
+import com.shop.util.Utils;
+import org.springframework.stereotype.Service;
+
 import java.sql.Connection;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -7,42 +16,39 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.stereotype.Service;
-
-import com.shop.db.Jdbc;
-import com.shop.enums.Enums;
-import com.shop.errors.ConflictException;
-import com.shop.errors.NotFoundException;
-import com.shop.serializers.Serializers;
-import com.shop.util.Utils;
-
 /**
- * 挑战B 订单：购物车多选下单、库存占用、订单历史与客户取消。
+ * 挑战C 订单：购物车多选下单（待支付）、支付结果回写、库存占用、订单历史与客户取消退款。
  *
  * <p>库存模型：下单即占用（库存占用记录 ACTIVE，可售 = 原始库存 - 活跃占用）；
  * 取消回补（占用置 RELEASED）；交易完成核销（占用置 CONSUMED，由卖家端推进）。
+ *
+ * <p>订单状态：待支付 → 已支付 → 商家确认 → 备货完成 → 开始发货 → 交易完成；已取消为终态。
+ * 已支付订单取消自动原路退款；待支付超过 24 小时由系统自动取消（FR-043）。
  */
 @Service
 public class OrderService {
 
     private static final DateTimeFormatter ORDER_DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final int PAYMENT_TIMEOUT_HOURS = 24;
 
     private final ProductService products;
-    private final LogService logs;
+    private final AddressService addresses;
+    private final Db db;
 
-    public OrderService(ProductService products, LogService logs) {
+    public OrderService(ProductService products, AddressService addresses, Db db) {
         this.products = products;
-        this.logs = logs;
+        this.addresses = addresses;
+        this.db = db;
     }
 
     // --------------------------- 下单 ---------------------------
 
     /**
-     * 购物车多选下单（FR-023 / FR-025）：逐商品校验库存；
-     * 缺货单项提示剔除、不拖累其他商品，客户剔除后再下（TBD-04）。
+     * 购物车多选下单（FR-023 / FR-025 / FR-048）：逐商品校验库存，固化收货地址快照，
+     * 订单进入「待支付」。缺货单项提示剔除、不拖累其他商品（TBD-04）。
      */
-    public Map<String, Object> checkout(Connection conn, String customerId, List<String> rawProductIds)
-            throws Exception {
+    public Map<String, Object> checkout(Connection conn, String customerId, List<String> rawProductIds,
+                                        String addressId) throws Exception {
         List<String> productIds = PreselectService.distinctIds(rawProductIds);
         if (productIds.isEmpty()) {
             throw new ConflictException("请至少选择一件购物车商品下单");
@@ -50,41 +56,34 @@ public class OrderService {
         if (productIds.size() > PreselectService.MAX_CART_ITEMS) {
             throw new ConflictException("单次下单商品数量不能超过 " + PreselectService.MAX_CART_ITEMS + " 件");
         }
+        // FR-048：下单必须选择收货地址；未指定时带出默认地址
+        Map<String, Object> address = addresses.resolveForOrder(conn, customerId, addressId);
 
         List<Map<String, Object>> lines = new ArrayList<>();
         List<String> problems = new ArrayList<>();
-        // TBD-04：缺货逐项提示，details 让前端能把具体商品标红并剔除
-        List<Map<String, Object>> shortages = new ArrayList<>();
         int totalCents = 0;
         for (String productId : productIds) {
             Map<String, Object> cart = Jdbc.queryOne(conn,
                     "SELECT * FROM cart_item WHERE customer_id = ? AND product_id = ?", customerId, productId);
             if (cart == null) {
                 problems.add(productId + " 不在购物车中");
-                shortages.add(shortage(productId, productId, 0, 0, "NOT_IN_CART", "不在购物车中"));
                 continue;
             }
             Map<String, Object> product = Jdbc.queryOne(conn, "SELECT * FROM product WHERE id = ?", productId);
             if (product == null) {
                 problems.add(productId + " 商品已不存在");
-                shortages.add(shortage(productId, productId, Jdbc.intOf(cart, "quantity"), 0,
-                        "PRODUCT_REMOVED", "商品已不存在"));
                 continue;
             }
             int quantity = Jdbc.intOf(cart, "quantity");
             String status = Jdbc.strOf(product, "status");
             if (!Enums.ProductStatus.ON_SALE.equals(status)) {
                 problems.add(Jdbc.strOf(product, "name") + "（已下架/售罄，请剔除）");
-                shortages.add(shortage(productId, Jdbc.strOf(product, "name"), quantity,
-                        products.availableOf(conn, product), "OFF_SALE", "已下架/售罄，请剔除"));
                 continue;
             }
             int available = products.availableOf(conn, product);
             if (quantity > available) {
                 problems.add(Jdbc.strOf(product, "name") + "（库存不足：需 " + quantity
                         + " 件，可售 " + available + " 件，请剔除或调减数量）");
-                shortages.add(shortage(productId, Jdbc.strOf(product, "name"), quantity, available,
-                        "INSUFFICIENT", "库存不足：需 " + quantity + " 件，可售 " + available + " 件"));
                 continue;
             }
             Map<String, Object> line = new LinkedHashMap<>();
@@ -97,16 +96,21 @@ public class OrderService {
             totalCents += Jdbc.intOf(product, "price_cents") * quantity;
         }
         if (!problems.isEmpty()) {
-            throw new ConflictException("以下商品无法下单，请剔除后重试：" + String.join("；", problems), shortages);
+            throw new ConflictException("以下商品无法下单，请剔除后重试：" + String.join("；", problems));
         }
 
         String now = Utils.nowIso();
         String orderId = Utils.newId();
         String orderNo = nextOrderNo(conn);
         Jdbc.update(conn,
-                "INSERT INTO shop_order (id, order_no, customer_id, status, total_cents, created_at, updated_at) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                orderId, orderNo, customerId, Enums.OrderStatus.CUSTOMER_PLACED, totalCents, now, now);
+                "INSERT INTO shop_order (id, order_no, customer_id, status, total_cents, receiver_name, "
+                        + "receiver_phone, receiver_province, receiver_city, receiver_district, receiver_detail, "
+                        + "receiver_postal_code, created_at, updated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                orderId, orderNo, customerId, Enums.OrderStatus.PENDING_PAYMENT, totalCents,
+                Jdbc.strOf(address, "receiver_name"), Jdbc.strOf(address, "receiver_phone"),
+                Jdbc.strOf(address, "province"), Jdbc.strOf(address, "city"), Jdbc.strOf(address, "district"),
+                Jdbc.strOf(address, "detail"), Jdbc.strOf(address, "postal_code"), now, now);
 
         for (Map<String, Object> line : lines) {
             int quantity = Jdbc.intOf(line, "quantity");
@@ -128,25 +132,9 @@ public class OrderService {
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("order", orderDetail(conn, customerId, orderId));
-        result.put("message", "下单成功，所选商品库存已占用");
+        result.put("order", detailOf(conn, customerId, orderId));
+        result.put("message", "下单成功，库存已占用，请在 24 小时内完成支付");
         return result;
-    }
-
-    /**
-     * 缺货明细（TBD-04）：随 409 的 error.details 下发，
-     * 前端据此把具体条目标红并从本次选择中剔除。
-     */
-    private static Map<String, Object> shortage(String productId, String name, int quantity,
-                                                int available, String reason, String message) {
-        Map<String, Object> detail = new LinkedHashMap<>();
-        detail.put("product_id", productId);
-        detail.put("name", name);
-        detail.put("quantity", quantity);
-        detail.put("available", available);
-        detail.put("reason", reason);
-        detail.put("message", message);
-        return detail;
     }
 
     // --------------------------- 查询 ---------------------------
@@ -170,11 +158,7 @@ public class OrderService {
                         + " ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?", pageParams.toArray());
         List<Map<String, Object>> items = new ArrayList<>();
         for (Map<String, Object> row : rows) {
-            Map<String, Object> item = Serializers.order(row);
-            List<Map<String, Object>> orderItems = items(conn, Jdbc.strOf(row, "id"));
-            item.put("items", orderItems);
-            item.put("item_count", orderItems.size());
-            items.add(item);
+            items.add(buildOrder(conn, row));
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);
@@ -186,13 +170,26 @@ public class OrderService {
 
     public Map<String, Object> detail(Connection conn, String customerId, String orderId) throws Exception {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("order", orderDetail(conn, customerId, orderId));
+        result.put("order", detailOf(conn, customerId, orderId));
         return result;
+    }
+
+    /**
+     * 订单明细（含订单项、地址快照、支付/退款、物流与售后汇总）。
+     * 支付与回调服务需要复用，故对外可见。
+     */
+    public Map<String, Object> detailOf(Connection conn, String customerId, String orderId) throws Exception {
+        Map<String, Object> row = Jdbc.queryOne(conn,
+                "SELECT * FROM shop_order WHERE id = ? AND customer_id = ?", orderId, customerId);
+        if (row == null) {
+            throw new NotFoundException("订单不存在");
+        }
+        return buildOrder(conn, row);
     }
 
     // --------------------------- 客户取消 ---------------------------
 
-    /** 客户取消（FR-028）：开始发货前可取消，占用库存逐件回补（FR-013）。 */
+    /** 客户取消（FR-028 / FR-044）：开始发货前可取消；已支付订单原路退款，占用库存逐件回补。 */
     public Map<String, Object> cancel(Connection conn, String customerId, String orderId) throws Exception {
         Map<String, Object> order = Jdbc.queryOne(conn,
                 "SELECT * FROM shop_order WHERE id = ? AND customer_id = ?", orderId, customerId);
@@ -203,9 +200,58 @@ public class OrderService {
         if (!Enums.OrderStatus.CUSTOMER_CANCELLABLE.contains(status)) {
             throw new ConflictException("订单已「" + Enums.OrderStatus.label(status) + "」，客户无法取消");
         }
+        boolean refunded = cancelInternal(conn, order, "CUSTOMER", "客户主动取消");
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("order", detailOf(conn, customerId, orderId));
+        result.put("message", refunded ? "订单已取消，支付金额已原路退回，占用库存已回补"
+                : "订单已取消，占用库存已回补");
+        return result;
+    }
+
+    /** 待支付超时自动取消（FR-043）：超过 24 小时未支付，系统取消并回补库存。 */
+    public int expirePendingOrders() {
+        String cutoff = Utils.toIso(Utils.now().minusHours(PAYMENT_TIMEOUT_HOURS));
+        return db.transaction(conn -> {
+            List<Map<String, Object>> rows = Jdbc.query(conn,
+                    "SELECT * FROM shop_order WHERE status = ? AND created_at <= ?",
+                    Enums.OrderStatus.PENDING_PAYMENT, cutoff);
+            for (Map<String, Object> row : rows) {
+                cancelInternal(conn, row, "SYSTEM", "超过 24 小时未支付，系统自动取消");
+            }
+            return rows.size();
+        });
+    }
+
+    // --------------------------- 内部工具 ---------------------------
+
+    /** 取消订单：状态置已取消、必要时生成退款、释放占用库存；返回是否发生退款。 */
+    private boolean cancelInternal(Connection conn, Map<String, Object> order, String cancelBy, String reason)
+            throws Exception {
+        String orderId = Jdbc.strOf(order, "id");
+        String status = Jdbc.strOf(order, "status");
         String now = Utils.nowIso();
-        Jdbc.update(conn, "UPDATE shop_order SET status = ?, updated_at = ? WHERE id = ?",
-                Enums.OrderStatus.CANCELLED, now, orderId);
+        Jdbc.update(conn,
+                "UPDATE shop_order SET status = ?, cancelled_at = ?, cancel_by = ?, cancel_reason = ?, "
+                        + "updated_at = ? WHERE id = ?",
+                Enums.OrderStatus.CANCELLED, now, cancelBy, reason, now, orderId);
+
+        boolean refunded = false;
+        if (Enums.OrderStatus.REFUNDABLE.contains(status)) {
+            Map<String, Object> payment = Jdbc.queryOne(conn,
+                    "SELECT * FROM payment WHERE order_id = ? AND status = ? ORDER BY rowid DESC LIMIT 1",
+                    orderId, Enums.PaymentStatus.SUCCESS);
+            if (payment != null) {
+                Jdbc.update(conn,
+                        "INSERT INTO refund (id, order_id, payment_id, refund_no, amount_cents, channel, status, "
+                                + "reason, refunded_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        Utils.newId(), orderId, Jdbc.strOf(payment, "id"), nextRefundNo(conn),
+                        Jdbc.intOf(payment, "amount_cents"), Jdbc.strOf(payment, "method"),
+                        Enums.RefundStatus.SUCCESS, reason, now, now);
+                refunded = true;
+            }
+        }
+
         // 回补占用：释放活跃占用，商品可售数量恢复
         List<Map<String, Object>> reservations = Jdbc.query(conn,
                 "SELECT product_id FROM stock_reservation WHERE order_id = ? AND status = ?",
@@ -216,176 +262,7 @@ public class OrderService {
         for (Map<String, Object> row : reservations) {
             refreshStockStatus(conn, Jdbc.strOf(row, "product_id"));
         }
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("order", orderDetail(conn, customerId, orderId));
-        result.put("message", "订单已取消，占用库存已回补");
-        return result;
-    }
-
-    // --------------------------- 卖家订单管理（FR-026 / FR-029 / FR-031） ---------------------------
-
-    /** 商家订单列表：按状态/订单号/客户名筛选 + 分页（FR-031）。 */
-    public Map<String, Object> listSeller(Connection conn, int page, int pageSize,
-                                          String status, String keyword) throws Exception {
-        StringBuilder where = new StringBuilder("1 = 1");
-        List<Object> params = new ArrayList<>();
-        if (status != null && !status.trim().isEmpty()) {
-            where.append(" AND o.status = ?");
-            params.add(status.trim());
-        }
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append(" AND (o.order_no LIKE ? ESCAPE '\\' OR cu.username LIKE ? ESCAPE '\\')");
-            String pattern = Utils.likePattern(keyword.trim());
-            params.add(pattern);
-            params.add(pattern);
-        }
-        Long total = Jdbc.scalarLong(conn,
-                "SELECT COUNT(*) AS c FROM shop_order o JOIN customer cu ON cu.id = o.customer_id "
-                        + "WHERE " + where, params.toArray());
-        List<Object> pageParams = new ArrayList<>(params);
-        pageParams.add(pageSize);
-        pageParams.add((page - 1) * pageSize);
-        List<Map<String, Object>> rows = Jdbc.query(conn,
-                "SELECT o.*, cu.username, cu.phone, cu.trade_location "
-                        + "FROM shop_order o JOIN customer cu ON cu.id = o.customer_id WHERE " + where
-                        + " ORDER BY o.created_at DESC, o.rowid DESC LIMIT ? OFFSET ?", pageParams.toArray());
-        List<Map<String, Object>> items = new ArrayList<>();
-        for (Map<String, Object> row : rows) {
-            Map<String, Object> item = Serializers.order(row);
-            item.put("customer", sellerCustomerOf(row));
-            List<Map<String, Object>> orderItems = items(conn, Jdbc.strOf(row, "id"));
-            item.put("items", orderItems);
-            item.put("item_count", orderItems.size());
-            items.add(item);
-        }
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("items", items);
-        result.put("total", total == null ? 0L : total);
-        result.put("page", page);
-        result.put("page_size", pageSize);
-        return result;
-    }
-
-    /** 商家订单详情：订单 + 订单项 + 客户信息。 */
-    public Map<String, Object> sellerDetail(Connection conn, String orderId) throws Exception {
-        Map<String, Object> row = Jdbc.queryOne(conn,
-                "SELECT o.*, cu.username, cu.phone, cu.trade_location "
-                        + "FROM shop_order o JOIN customer cu ON cu.id = o.customer_id WHERE o.id = ?", orderId);
-        if (row == null) {
-            throw new NotFoundException("订单不存在");
-        }
-        Map<String, Object> item = Serializers.order(row);
-        List<Map<String, Object>> orderItems = items(conn, orderId);
-        item.put("items", orderItems);
-        item.put("item_count", orderItems.size());
-        item.put("customer", sellerCustomerOf(row));
-        return item;
-    }
-
-    /** 商家单向推进订单（FR-026）：客户下单→商家确认→备货完成→开始发货→交易完成；到达交易完成时实际扣减库存并核销占用（FR-014）。 */
-    public Map<String, Object> advance(Connection conn, String sellerId, String orderId) throws Exception {
-        Map<String, Object> order = Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId);
-        if (order == null) {
-            throw new NotFoundException("订单不存在");
-        }
-        String status = Jdbc.strOf(order, "status");
-        String next = Enums.OrderStatus.next(status);
-        if (next == null) {
-            throw new ConflictException("订单已「" + Enums.OrderStatus.label(status) + "」，无法继续推进");
-        }
-        String now = Utils.nowIso();
-        Jdbc.update(conn, "UPDATE shop_order SET status = ?, updated_at = ? WHERE id = ?",
-                next, now, orderId);
-        String orderNo = Jdbc.strOf(order, "order_no");
-
-        String message;
-        if (Enums.OrderStatus.COMPLETED.equals(next)) {
-            // 交易完成：实际扣减 product.stock，并将占用核销为 CONSUMED（FR-014）
-            List<Map<String, Object>> reservations = Jdbc.query(conn,
-                    "SELECT product_id, quantity FROM stock_reservation WHERE order_id = ? AND status = ?",
-                    orderId, Enums.ReservationStatus.ACTIVE);
-            for (Map<String, Object> reservation : reservations) {
-                String productId = Jdbc.strOf(reservation, "product_id");
-                int quantity = Jdbc.intOf(reservation, "quantity");
-                Jdbc.update(conn,
-                        "UPDATE product SET stock = MAX(0, stock - ?), updated_at = ? WHERE id = ?",
-                        quantity, now, productId);
-                Jdbc.update(conn,
-                        "UPDATE stock_reservation SET status = ?, updated_at = ? "
-                                + "WHERE order_id = ? AND product_id = ? AND status = ?",
-                        Enums.ReservationStatus.CONSUMED, now, orderId, productId,
-                        Enums.ReservationStatus.ACTIVE);
-                refreshStockStatus(conn, productId);
-            }
-            logs.logAction(conn, sellerId, Enums.LogAction.COMPLETE_ORDER,
-                    "订单 " + orderNo + " 交易完成，占用库存已核销扣减");
-            message = "订单已交易完成，库存已实际扣减";
-        } else {
-            String action = resolveAction(next);
-            logs.logAction(conn, sellerId, action, "订单 " + orderNo + " 推进为「" + Enums.OrderStatus.label(next) + "」");
-            message = "订单已推进为「" + Enums.OrderStatus.label(next) + "」";
-        }
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("order", sellerDetail(conn, orderId));
-        result.put("message", message);
-        return result;
-    }
-
-    /** 商家取消订单（FR-029）：交易完成前可取消，占用库存逐件回补（FR-013）。 */
-    public Map<String, Object> cancelBySeller(Connection conn, String sellerId, String orderId)
-            throws Exception {
-        Map<String, Object> order = Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId);
-        if (order == null) {
-            throw new NotFoundException("订单不存在");
-        }
-        String status = Jdbc.strOf(order, "status");
-        if (!Enums.OrderStatus.SELLER_CANCELLABLE.contains(status)) {
-            throw new ConflictException("订单已「" + Enums.OrderStatus.label(status) + "」，商家无法取消（交易完成/已取消后不可取消）");
-        }
-        String now = Utils.nowIso();
-        Jdbc.update(conn, "UPDATE shop_order SET status = ?, updated_at = ? WHERE id = ?",
-                Enums.OrderStatus.CANCELLED, now, orderId);
-        // 回补占用：释放活跃占用，商品可售数量恢复
-        List<Map<String, Object>> reservations = Jdbc.query(conn,
-                "SELECT product_id FROM stock_reservation WHERE order_id = ? AND status = ?",
-                orderId, Enums.ReservationStatus.ACTIVE);
-        Jdbc.update(conn,
-                "UPDATE stock_reservation SET status = ?, updated_at = ? WHERE order_id = ? AND status = ?",
-                Enums.ReservationStatus.RELEASED, now, orderId, Enums.ReservationStatus.ACTIVE);
-        for (Map<String, Object> reservation : reservations) {
-            refreshStockStatus(conn, Jdbc.strOf(reservation, "product_id"));
-        }
-        logs.logAction(conn, sellerId, Enums.LogAction.CANCEL_ORDER,
-                "商家取消订单 " + Jdbc.strOf(order, "order_no") + "，占用库存已回补");
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("order", sellerDetail(conn, orderId));
-        result.put("message", "订单已取消，占用库存已回补");
-        return result;
-    }
-
-    private static String resolveAction(String status) {
-        if (Enums.OrderStatus.SELLER_CONFIRMED.equals(status)) {
-            return Enums.LogAction.CONFIRM_ORDER;
-        }
-        if (Enums.OrderStatus.STOCK_READY.equals(status)) {
-            return Enums.LogAction.READY_ORDER;
-        }
-        if (Enums.OrderStatus.SHIPPING.equals(status)) {
-            return Enums.LogAction.SHIP_ORDER;
-        }
-        return Enums.LogAction.CONFIRM_ORDER;
-    }
-
-    private static Map<String, Object> sellerCustomerOf(Map<String, Object> row) {
-        Map<String, Object> customer = new LinkedHashMap<>();
-        customer.put("id", Jdbc.strOf(row, "customer_id"));
-        customer.put("username", Jdbc.strOf(row, "username"));
-        customer.put("phone", Jdbc.strOf(row, "phone"));
-        customer.put("trade_location", Jdbc.strOf(row, "trade_location"));
-        return customer;
+        return refunded;
     }
 
     /** 可售归零自动售罄下架，回补后可售恢复则重新在售（FR-015 / FR-016）。 */
@@ -405,16 +282,71 @@ public class OrderService {
         }
     }
 
-    private Map<String, Object> orderDetail(Connection conn, String customerId, String orderId) throws Exception {
-        Map<String, Object> row = Jdbc.queryOne(conn,
-                "SELECT * FROM shop_order WHERE id = ? AND customer_id = ?", orderId, customerId);
-        if (row == null) {
-            throw new NotFoundException("订单不存在");
-        }
+    private Map<String, Object> buildOrder(Connection conn, Map<String, Object> row) throws Exception {
+        String orderId = Jdbc.strOf(row, "id");
+        String status = Jdbc.strOf(row, "status");
         Map<String, Object> item = Serializers.order(row);
+
         List<Map<String, Object>> orderItems = items(conn, orderId);
         item.put("items", orderItems);
         item.put("item_count", orderItems.size());
+
+        // 收货地址快照（FR-048）：下单时固化，不随地址簿变更
+        Map<String, Object> address = new LinkedHashMap<>();
+        String province = Jdbc.strOf(row, "receiver_province");
+        String city = Jdbc.strOf(row, "receiver_city");
+        String district = Jdbc.strOf(row, "receiver_district");
+        address.put("receiver_name", Jdbc.strOf(row, "receiver_name"));
+        address.put("receiver_phone", Jdbc.strOf(row, "receiver_phone"));
+        address.put("province", province);
+        address.put("city", city);
+        address.put("district", district);
+        address.put("region", province + city + district);
+        address.put("detail", Jdbc.strOf(row, "receiver_detail"));
+        address.put("postal_code", Jdbc.strOf(row, "receiver_postal_code"));
+        item.put("address", address);
+
+        Map<String, Object> payment = Jdbc.queryOne(conn,
+                "SELECT * FROM payment WHERE order_id = ? ORDER BY rowid DESC LIMIT 1", orderId);
+        Map<String, Object> refund = Jdbc.queryOne(conn,
+                "SELECT * FROM refund WHERE order_id = ? ORDER BY rowid DESC LIMIT 1", orderId);
+        Map<String, Object> shipment = Jdbc.queryOne(conn,
+                "SELECT * FROM shipment WHERE order_id = ?", orderId);
+
+        String paymentStatus;
+        String paymentStatusLabel;
+        if (refund != null) {
+            paymentStatus = "REFUNDED";
+            paymentStatusLabel = "已退款";
+        } else if (payment != null && Enums.PaymentStatus.SUCCESS.equals(Jdbc.strOf(payment, "status"))) {
+            paymentStatus = "PAID";
+            paymentStatusLabel = "已支付";
+        } else {
+            paymentStatus = "UNPAID";
+            paymentStatusLabel = "未支付";
+        }
+        item.put("payment", payment == null ? null : Serializers.payment(payment));
+        item.put("payment_status", paymentStatus);
+        item.put("payment_status_label", paymentStatusLabel);
+        item.put("payment_method", payment == null ? null : Jdbc.strOf(payment, "method"));
+        item.put("payment_method_label",
+                payment == null ? null : Enums.PaymentMethod.label(Jdbc.strOf(payment, "method")));
+        item.put("paid_at", Jdbc.strOf(row, "paid_at"));
+        item.put("refund", refund == null ? null : Serializers.refund(refund));
+        item.put("shipment", shipment == null ? null : Serializers.shipment(shipment));
+        item.put("shipment_status",
+                shipment == null ? "NOT_SHIPPED" : Jdbc.strOf(shipment, "status"));
+        item.put("shipment_status_label", shipment == null ? "未发货"
+                : Enums.ShipmentStatus.label(Jdbc.strOf(shipment, "status")));
+        item.put("cancelled_at", Jdbc.strOf(row, "cancelled_at"));
+        item.put("cancel_by", Jdbc.strOf(row, "cancel_by"));
+        item.put("cancel_reason", Jdbc.strOf(row, "cancel_reason"));
+        item.put("can_pay", Enums.OrderStatus.PENDING_PAYMENT.equals(status));
+        item.put("can_cancel", Enums.OrderStatus.CUSTOMER_CANCELLABLE.contains(status));
+        item.put("can_after_sale", Enums.OrderStatus.COMPLETED.equals(status));
+        Long afterSales = Jdbc.scalarLong(conn,
+                "SELECT COUNT(*) AS c FROM after_sale WHERE order_id = ?", orderId);
+        item.put("after_sale_count", afterSales == null ? 0L : afterSales);
         return item;
     }
 
@@ -435,5 +367,14 @@ public class OrderService {
                 "SELECT COUNT(*) AS c FROM shop_order WHERE order_no LIKE ?", day + "-%");
         int sequence = (count == null ? 0 : count.intValue()) + 1;
         return day + "-" + String.format("%04d", sequence);
+    }
+
+    /** 退款单号：RF + 日期 + 当天自增序号。 */
+    private String nextRefundNo(Connection conn) throws Exception {
+        String day = Utils.now().format(ORDER_DAY);
+        Long count = Jdbc.scalarLong(conn,
+                "SELECT COUNT(*) AS c FROM refund WHERE refund_no LIKE ?", "RF" + day + "-%");
+        int sequence = (count == null ? 0 : count.intValue()) + 1;
+        return "RF" + day + "-" + String.format("%04d", sequence);
     }
 }
