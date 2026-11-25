@@ -1,13 +1,13 @@
 package com.shop.serializers;
 
-import com.shop.db.Jdbc;
-import com.shop.enums.Enums;
-import com.shop.util.Utils;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.shop.db.Jdbc;
+import com.shop.enums.Enums;
+import com.shop.util.Utils;
 
 /**
  * 响应序列化：统一 snake_case 字段与中文状态标签。
@@ -233,6 +233,7 @@ public final class Serializers {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", Jdbc.strOf(row, "id"));
         item.put("carrier", Jdbc.strOf(row, "carrier"));
+        item.put("carrier_name", Enums.Carrier.label(Jdbc.strOf(row, "carrier")));
         item.put("tracking_no", Jdbc.strOf(row, "tracking_no"));
         item.put("status", Jdbc.strOf(row, "status"));
         item.put("status_label", Enums.ShipmentStatus.label(Jdbc.strOf(row, "status")));
@@ -264,7 +265,11 @@ public final class Serializers {
         item.put("status", Jdbc.strOf(row, "status"));
         item.put("status_label", Enums.AfterSaleStatus.label(Jdbc.strOf(row, "status")));
         item.put("result", Jdbc.strOf(row, "result"));
+        item.put("result_label", Enums.AfterSaleResult.label(Jdbc.strOf(row, "result")));
         item.put("result_note", Jdbc.strOf(row, "result_note"));
+        item.put("refund_amount", Utils.priceFromCents(Jdbc.integerOrNull(row, "refund_amount_cents")));
+        item.put("refund_amount_cents", Jdbc.integerOrNull(row, "refund_amount_cents"));
+        item.put("handled_at", Jdbc.strOf(row, "handled_at"));
         item.put("created_at", Jdbc.strOf(row, "created_at"));
         item.put("updated_at", Jdbc.strOf(row, "updated_at"));
         return item;

@@ -27,8 +27,9 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * 挑战B 店家端集成测试：订单列表/详情、单向流转（客户下单→确认→备货→发货→交易完成）、
- * 交易完成实际扣减库存、商家取消回补占用库存、发货后客户不可取消、角色隔离。
+ * 挑战C 店家端集成测试：线上支付、订单列表/详情、单向流转（待支付→已支付→确认→备货→发货→交易完成）、
+ * 备货完成不可直接推进（必须发货填物流）、物流状态单向流转、交易完成实际扣减库存、
+ * 商家取消退款回补占用库存、发货后客户不可取消、角色隔离。
  * 独立临时数据库，避免与买家端测试共享全局计数断言。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -123,8 +124,21 @@ class SellerFlowIntegrationTest {
                 map("product_id", productId, "quantity", quantity), token);
     }
 
-    private JsonNode checkout(List<String> productIds, String token) {
-        return call(HttpMethod.POST, "/api/customer/orders", map("product_ids", productIds), token);
+    private String addAddress(String token, String receiverName, String receiverPhone) {
+        return call(HttpMethod.POST, "/api/customer/addresses",
+                map("receiver_name", receiverName, "receiver_phone", receiverPhone,
+                        "province", "广东省", "city", "深圳市", "district", "南山区", "detail", "科技园 1 号"),
+                token).path("address").path("id").asText();
+    }
+
+    private JsonNode checkout(List<String> productIds, String addressId, String token) {
+        return call(HttpMethod.POST, "/api/customer/orders",
+                map("product_ids", productIds, "address_id", addressId), token);
+    }
+
+    private JsonNode pay(String orderId, String token) {
+        return call(HttpMethod.POST, "/api/customer/orders/" + orderId + "/pay",
+                map("payment_method", "ALIPAY"), token);
     }
 
     private String uploadPng(String token) {
@@ -151,7 +165,7 @@ class SellerFlowIntegrationTest {
     }
 
     @Test
-    void sellerFlowChallengeB() throws Exception {
+    void sellerFlowChallengeC() throws Exception {
         String seller = call(HttpMethod.POST, "/api/seller/login",
                 map("username", "seller", "password", "seller123"), null).path("token").asText();
         String topId = call(HttpMethod.POST, "/api/seller/categories",
@@ -163,16 +177,22 @@ class SellerFlowIntegrationTest {
 
         register("carol", "13800000011", "三号门");
         String carol = customerToken("carol");
+        String carolAddress = addAddress(carol, "卡罗尔", "13800000011");
         addCart(earphone, 3, carol);
-        JsonNode order = checkout(new ArrayList<>(Arrays.asList(earphone)), carol).path("order");
+        JsonNode order = checkout(new ArrayList<>(Arrays.asList(earphone)), carolAddress, carol).path("order");
         String orderId = order.path("id").asText();
-        assertEquals("CUSTOMER_PLACED", order.path("status").asText());
-        assertEquals("客户下单", order.path("status_label").asText());
+        assertEquals("PENDING_PAYMENT", order.path("status").asText());
+        assertEquals("待支付", order.path("status_label").asText());
         assertEquals(0, get("/api/products/" + earphone, null)
                 .path("product").path("available_stock").asInt());
 
+        // 线上支付：待支付 → 已支付
+        JsonNode paid = pay(orderId, carol).path("order");
+        assertEquals("PAID", paid.path("status").asText());
+        assertEquals("已支付", paid.path("status_label").asText());
+
         // 商家订单列表与详情：状态筛选、客户信息、订单项
-        JsonNode list = get("/api/seller/orders?status=CUSTOMER_PLACED", seller);
+        JsonNode list = get("/api/seller/orders?status=PAID", seller);
         assertEquals(1, list.path("total").asInt());
         assertEquals(orderId, list.path("items").get(0).path("id").asText());
         assertEquals("carol", list.path("items").get(0).path("customer").path("username").asText());
@@ -182,16 +202,32 @@ class SellerFlowIntegrationTest {
         assertEquals(3, detail.path("items").get(0).path("quantity").asInt());
         assertEquals("carol", detail.path("customer").path("username").asText());
 
-        // 单向推进：确认→备货→发货
+        // 单向推进：已支付 → 商家确认 → 备货完成；备货完成不可直接推进，必须发货填物流
         assertEquals("SELLER_CONFIRMED", call(HttpMethod.POST,
                 "/api/seller/orders/" + orderId + "/advance", null, seller).path("order").path("status").asText());
         assertEquals("STOCK_READY", call(HttpMethod.POST,
                 "/api/seller/orders/" + orderId + "/advance", null, seller).path("order").path("status").asText());
-        assertEquals("SHIPPING", call(HttpMethod.POST,
-                "/api/seller/orders/" + orderId + "/advance", null, seller).path("order").path("status").asText());
+        assertEquals(409, status(HttpMethod.POST,
+                "/api/seller/orders/" + orderId + "/advance", null, seller));
+
+        // 发货：填写物流服务商与运单号 → 开始发货
+        JsonNode shipped = call(HttpMethod.POST, "/api/seller/orders/" + orderId + "/ship",
+                map("carrier", "SF", "tracking_no", "SF1234567890"), seller);
+        assertEquals("SHIPPING", shipped.path("order").path("status").asText());
+        assertEquals("SF", shipped.path("shipment").path("carrier").asText());
+        assertEquals("SF1234567890", shipped.path("shipment").path("tracking_no").asText());
+        assertEquals("SHIPPED", shipped.path("shipment").path("status").asText());
         // 发货后客户不可取消
         assertEquals(409, status(HttpMethod.POST,
                 "/api/customer/orders/" + orderId + "/cancel", null, carol));
+
+        // 物流状态单向流转：已发货 → 运输中 → 派送中 → 已签收
+        assertEquals("IN_TRANSIT", call(HttpMethod.PATCH, "/api/seller/orders/" + orderId + "/shipment",
+                map("status", "IN_TRANSIT"), seller).path("shipment").path("status").asText());
+        assertEquals("DELIVERING", call(HttpMethod.PATCH, "/api/seller/orders/" + orderId + "/shipment",
+                map("status", "DELIVERING"), seller).path("shipment").path("status").asText());
+        assertEquals("DELIVERED", call(HttpMethod.PATCH, "/api/seller/orders/" + orderId + "/shipment",
+                map("status", "DELIVERED"), seller).path("shipment").path("status").asText());
 
         // 交易完成：库存实际扣减、不可再推进/取消
         JsonNode completed = call(HttpMethod.POST,
@@ -205,15 +241,18 @@ class SellerFlowIntegrationTest {
         assertEquals(409, status(HttpMethod.POST,
                 "/api/seller/orders/" + orderId + "/cancel", null, seller));
 
-        // 商家取消（发货前）：占用回补
+        // 商家取消（发货前，已支付）：原路退款 + 占用回补
         String keyboard = publish(seller, "机械键盘", 299.0, 2, leafId, new ArrayList<String>())
                 .path("product").path("id").asText();
         register("dave", "13800000012", "四号门");
         String dave = customerToken("dave");
+        String daveAddress = addAddress(dave, "戴夫", "13800000012");
         addCart(keyboard, 2, dave);
-        String order2Id = checkout(new ArrayList<>(Arrays.asList(keyboard)), dave).path("order").path("id").asText();
+        String order2Id = checkout(new ArrayList<>(Arrays.asList(keyboard)), daveAddress, dave)
+                .path("order").path("id").asText();
         assertEquals(0, get("/api/products/" + keyboard, null)
                 .path("product").path("available_stock").asInt());
+        assertEquals("PAID", pay(order2Id, dave).path("order").path("status").asText());
         JsonNode cancelledSeller = call(HttpMethod.POST,
                 "/api/seller/orders/" + order2Id + "/cancel", null, seller).path("order");
         assertEquals("CANCELLED", cancelledSeller.path("status").asText());

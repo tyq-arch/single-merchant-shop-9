@@ -1,5 +1,14 @@
 package com.shop.services;
 
+import java.sql.Connection;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
 import com.shop.db.Db;
 import com.shop.db.Jdbc;
 import com.shop.enums.Enums;
@@ -7,14 +16,6 @@ import com.shop.errors.ConflictException;
 import com.shop.errors.NotFoundException;
 import com.shop.serializers.Serializers;
 import com.shop.util.Utils;
-import org.springframework.stereotype.Service;
-
-import java.sql.Connection;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 挑战C 订单：购物车多选下单（待支付）、支付结果回写、库存占用、订单历史与客户取消退款。
@@ -33,11 +34,13 @@ public class OrderService {
 
     private final ProductService products;
     private final AddressService addresses;
+    private final ShipmentService shipments;
     private final Db db;
 
-    public OrderService(ProductService products, AddressService addresses, Db db) {
+    public OrderService(ProductService products, AddressService addresses, ShipmentService shipments, Db db) {
         this.products = products;
         this.addresses = addresses;
+        this.shipments = shipments;
         this.db = db;
     }
 
@@ -158,7 +161,7 @@ public class OrderService {
                         + " ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?", pageParams.toArray());
         List<Map<String, Object>> items = new ArrayList<>();
         for (Map<String, Object> row : rows) {
-            items.add(buildOrder(conn, row));
+            items.add(buildOrder(conn, row, false));
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);
@@ -184,7 +187,7 @@ public class OrderService {
         if (row == null) {
             throw new NotFoundException("订单不存在");
         }
-        return buildOrder(conn, row);
+        return buildOrder(conn, row, false);
     }
 
     // --------------------------- 客户取消 ---------------------------
@@ -221,6 +224,150 @@ public class OrderService {
             }
             return rows.size();
         });
+    }
+
+    // --------------------------- 卖家端 ---------------------------
+
+    /** 卖家订单列表（FR-031）：按状态筛选、按订单号/客户搜索。 */
+    public Map<String, Object> listSeller(Connection conn, int page, int pageSize, String status, String keyword)
+            throws Exception {
+        List<Object> params = new ArrayList<>();
+        StringBuilder where = new StringBuilder("1 = 1");
+        if (status != null && !status.trim().isEmpty()) {
+            where.append(" AND o.status = ?");
+            params.add(status.trim().toUpperCase());
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append(" AND (o.order_no LIKE ? OR cu.username LIKE ? OR cu.phone LIKE ?)");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
+        }
+        Long total = Jdbc.scalarLong(conn,
+                "SELECT COUNT(*) AS c FROM shop_order o JOIN customer cu ON cu.id = o.customer_id WHERE " + where,
+                params.toArray());
+        List<Object> pageParams = new ArrayList<>(params);
+        pageParams.add(pageSize);
+        pageParams.add((page - 1) * pageSize);
+        List<Map<String, Object>> rows = Jdbc.query(conn,
+                "SELECT o.* FROM shop_order o JOIN customer cu ON cu.id = o.customer_id WHERE " + where
+                        + " ORDER BY o.created_at DESC, o.rowid DESC LIMIT ? OFFSET ?", pageParams.toArray());
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            items.add(buildOrder(conn, row, true));
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("items", items);
+        result.put("total", total == null ? 0L : total);
+        result.put("page", page);
+        result.put("page_size", pageSize);
+        return result;
+    }
+
+    /** 卖家订单详情（FR-031）：含客户信息、支付/退款、物流与售后。 */
+    public Map<String, Object> sellerDetail(Connection conn, String orderId) throws Exception {
+        Map<String, Object> row = Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId);
+        if (row == null) {
+            throw new NotFoundException("订单不存在");
+        }
+        return buildOrder(conn, row, true);
+    }
+
+    /** 卖家单向推进（FR-026）：已支付→商家确认→备货完成；备货完成必须发货填物流；开始发货→交易完成。 */
+    public Map<String, Object> advance(Connection conn, String sellerId, String orderId) throws Exception {
+        Map<String, Object> order = Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId);
+        if (order == null) {
+            throw new NotFoundException("订单不存在");
+        }
+        String status = Jdbc.strOf(order, "status");
+        String next;
+        if (Enums.OrderStatus.PAID.equals(status)) {
+            next = Enums.OrderStatus.SELLER_CONFIRMED;
+        } else if (Enums.OrderStatus.SELLER_CONFIRMED.equals(status)) {
+            next = Enums.OrderStatus.STOCK_READY;
+        } else if (Enums.OrderStatus.STOCK_READY.equals(status)) {
+            throw new ConflictException("「备货完成」的订单需先填写物流信息发货，不能直接推进");
+        } else if (Enums.OrderStatus.SHIPPING.equals(status)) {
+            next = Enums.OrderStatus.COMPLETED;
+        } else {
+            throw new ConflictException("订单当前状态「" + Enums.OrderStatus.label(status) + "」无法推进");
+        }
+        String now = Utils.nowIso();
+        Jdbc.update(conn, "UPDATE shop_order SET status = ?, updated_at = ? WHERE id = ?", next, now, orderId);
+        if (Enums.OrderStatus.COMPLETED.equals(next)) {
+            consumeStock(conn, orderId, now);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("order", buildOrder(conn,
+                Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId), true));
+        result.put("message", "订单已推进到「" + Enums.OrderStatus.label(next) + "」");
+        return result;
+    }
+
+    /** 卖家发货（FR-049）：备货完成 → 开始发货，填写物流服务商与运单号并记录首条物流轨迹。 */
+    public Map<String, Object> ship(Connection conn, String sellerId, String orderId, String carrier, String trackingNo)
+            throws Exception {
+        Map<String, Object> order = Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId);
+        if (order == null) {
+            throw new NotFoundException("订单不存在");
+        }
+        if (!Enums.OrderStatus.STOCK_READY.equals(Jdbc.strOf(order, "status"))) {
+            throw new ConflictException("仅「备货完成」的订单可以发货");
+        }
+        Map<String, Object> shipment = shipments.create(conn, orderId, carrier, trackingNo);
+        Jdbc.update(conn, "UPDATE shop_order SET status = ?, updated_at = ? WHERE id = ?",
+                Enums.OrderStatus.SHIPPING, Utils.nowIso(), orderId);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("order", buildOrder(conn,
+                Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId), true));
+        result.put("shipment", shipment);
+        result.put("message", "发货成功，订单已进入「开始发货」");
+        return result;
+    }
+
+    /** 卖家更新物流状态（TBD-09）：单向流转到下一节点。 */
+    public Map<String, Object> updateShipmentStatus(Connection conn, String sellerId, String orderId, String status)
+            throws Exception {
+        Map<String, Object> shipment = shipments.updateStatus(conn, orderId, status);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("shipment", shipment);
+        result.put("message", "物流状态已更新为「" + Enums.ShipmentStatus.label(status) + "」");
+        return result;
+    }
+
+    /** 卖家取消（FR-028 / FR-044）：交易完成前可取消；已支付订单原路退款，占用库存回补。 */
+    public Map<String, Object> cancelBySeller(Connection conn, String sellerId, String orderId) throws Exception {
+        Map<String, Object> order = Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId);
+        if (order == null) {
+            throw new NotFoundException("订单不存在");
+        }
+        if (!Enums.OrderStatus.SELLER_CANCELLABLE.contains(Jdbc.strOf(order, "status"))) {
+            throw new ConflictException("订单已「" + Enums.OrderStatus.label(Jdbc.strOf(order, "status"))
+                    + "」，商家无法取消");
+        }
+        boolean refunded = cancelInternal(conn, order, "SELLER", "商家取消订单");
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("order", buildOrder(conn,
+                Jdbc.queryOne(conn, "SELECT * FROM shop_order WHERE id = ?", orderId), true));
+        result.put("message", refunded ? "订单已取消，支付金额已原路退回，占用库存已回补"
+                : "订单已取消，占用库存已回补");
+        return result;
+    }
+
+    /** 交易完成核销占用：活跃占用置已核销，原始库存实际扣减（FR-012 / FR-026）。 */
+    private void consumeStock(Connection conn, String orderId, String now) throws Exception {
+        List<Map<String, Object>> reservations = Jdbc.query(conn,
+                "SELECT product_id, quantity FROM stock_reservation WHERE order_id = ? AND status = ?",
+                orderId, Enums.ReservationStatus.ACTIVE);
+        Jdbc.update(conn,
+                "UPDATE stock_reservation SET status = ?, updated_at = ? WHERE order_id = ? AND status = ?",
+                Enums.ReservationStatus.CONSUMED, now, orderId, Enums.ReservationStatus.ACTIVE);
+        for (Map<String, Object> reservation : reservations) {
+            Jdbc.update(conn, "UPDATE product SET stock = stock - ?, updated_at = ? WHERE id = ?",
+                    Jdbc.intOf(reservation, "quantity"), now, Jdbc.strOf(reservation, "product_id"));
+            refreshStockStatus(conn, Jdbc.strOf(reservation, "product_id"));
+        }
     }
 
     // --------------------------- 内部工具 ---------------------------
@@ -282,10 +429,24 @@ public class OrderService {
         }
     }
 
-    private Map<String, Object> buildOrder(Connection conn, Map<String, Object> row) throws Exception {
+    private Map<String, Object> buildOrder(Connection conn, Map<String, Object> row, boolean forSeller) throws Exception {
         String orderId = Jdbc.strOf(row, "id");
         String status = Jdbc.strOf(row, "status");
         Map<String, Object> item = Serializers.order(row);
+
+        if (forSeller) {
+            Map<String, Object> customerRow = Jdbc.queryOne(conn,
+                    "SELECT * FROM customer WHERE id = ?", Jdbc.strOf(row, "customer_id"));
+            if (customerRow != null) {
+                Map<String, Object> customer = new LinkedHashMap<>();
+                customer.put("id", Jdbc.strOf(customerRow, "id"));
+                customer.put("username", Jdbc.strOf(customerRow, "username"));
+                customer.put("phone", Jdbc.strOf(customerRow, "phone"));
+                customer.put("trade_location", Jdbc.strOf(customerRow, "trade_location"));
+                item.put("customer", customer);
+                item.put("customer_name", Jdbc.strOf(customerRow, "username"));
+            }
+        }
 
         List<Map<String, Object>> orderItems = items(conn, orderId);
         item.put("items", orderItems);
@@ -298,6 +459,8 @@ public class OrderService {
         String district = Jdbc.strOf(row, "receiver_district");
         address.put("receiver_name", Jdbc.strOf(row, "receiver_name"));
         address.put("receiver_phone", Jdbc.strOf(row, "receiver_phone"));
+        address.put("receiver", Jdbc.strOf(row, "receiver_name"));
+        address.put("phone", Jdbc.strOf(row, "receiver_phone"));
         address.put("province", province);
         address.put("city", city);
         address.put("district", district);
@@ -325,7 +488,15 @@ public class OrderService {
             paymentStatus = "UNPAID";
             paymentStatusLabel = "未支付";
         }
-        item.put("payment", payment == null ? null : Serializers.payment(payment));
+        Map<String, Object> paymentItem = payment == null ? null : Serializers.payment(payment);
+        if (paymentItem != null && refund != null) {
+            paymentItem.put("refund_status", Enums.RefundStatus.label(Jdbc.strOf(refund, "status")));
+            paymentItem.put("refund_status_label", Enums.RefundStatus.label(Jdbc.strOf(refund, "status")));
+            paymentItem.put("refund_amount", Utils.priceFromCents(Jdbc.integerOrNull(refund, "amount_cents")));
+            paymentItem.put("refund_no", Jdbc.strOf(refund, "refund_no"));
+            paymentItem.put("refunded_at", Jdbc.strOf(refund, "refunded_at"));
+        }
+        item.put("payment", paymentItem);
         item.put("payment_status", paymentStatus);
         item.put("payment_status_label", paymentStatusLabel);
         item.put("payment_method", payment == null ? null : Jdbc.strOf(payment, "method"));
@@ -333,7 +504,7 @@ public class OrderService {
                 payment == null ? null : Enums.PaymentMethod.label(Jdbc.strOf(payment, "method")));
         item.put("paid_at", Jdbc.strOf(row, "paid_at"));
         item.put("refund", refund == null ? null : Serializers.refund(refund));
-        item.put("shipment", shipment == null ? null : Serializers.shipment(shipment));
+        item.put("shipment", shipment == null ? null : shipments.build(conn, shipment));
         item.put("shipment_status",
                 shipment == null ? "NOT_SHIPPED" : Jdbc.strOf(shipment, "status"));
         item.put("shipment_status_label", shipment == null ? "未发货"
@@ -344,10 +515,45 @@ public class OrderService {
         item.put("can_pay", Enums.OrderStatus.PENDING_PAYMENT.equals(status));
         item.put("can_cancel", Enums.OrderStatus.CUSTOMER_CANCELLABLE.contains(status));
         item.put("can_after_sale", Enums.OrderStatus.COMPLETED.equals(status));
-        Long afterSales = Jdbc.scalarLong(conn,
-                "SELECT COUNT(*) AS c FROM after_sale WHERE order_id = ?", orderId);
-        item.put("after_sale_count", afterSales == null ? 0L : afterSales);
+        List<Map<String, Object>> aftersales = afterSales(conn, orderId);
+        item.put("aftersales", aftersales);
+        item.put("after_sale_count", aftersales.size());
         return item;
+    }
+
+    /** 订单级售后汇总（含商品名、图片与退款流水），供订单详情逐件回填。 */
+    private List<Map<String, Object>> afterSales(Connection conn, String orderId) throws Exception {
+        List<Map<String, Object>> rows = Jdbc.query(conn,
+                "SELECT a.*, oi.product_id, oi.product_name, o.order_no, "
+                        + "(SELECT url FROM product_image WHERE product_id = oi.product_id "
+                        + " ORDER BY sort_order ASC, rowid ASC LIMIT 1) AS primary_image "
+                        + "FROM after_sale a "
+                        + "JOIN order_item oi ON oi.id = a.order_item_id "
+                        + "JOIN shop_order o ON o.id = a.order_id "
+                        + "WHERE a.order_id = ? ORDER BY a.created_at DESC, a.rowid DESC", orderId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Map<String, Object> item = Serializers.afterSale(row);
+            item.put("order_no", Jdbc.strOf(row, "order_no"));
+            item.put("product_image", Jdbc.strOf(row, "primary_image"));
+            List<String> images = new ArrayList<>();
+            for (Map<String, Object> image : Jdbc.query(conn,
+                    "SELECT url FROM after_sale_image WHERE after_sale_id = ? ORDER BY sort_order ASC",
+                    Jdbc.strOf(row, "id"))) {
+                images.add(Jdbc.strOf(image, "url"));
+            }
+            item.put("images", images);
+            String refundId = Jdbc.strOf(row, "refund_id");
+            if (refundId != null && !refundId.isEmpty()) {
+                Map<String, Object> refund = Jdbc.queryOne(conn, "SELECT * FROM refund WHERE id = ?", refundId);
+                if (refund != null) {
+                    item.put("refund_no", Jdbc.strOf(refund, "refund_no"));
+                    item.put("refunded_at", Jdbc.strOf(refund, "refunded_at"));
+                }
+            }
+            list.add(item);
+        }
+        return list;
     }
 
     private List<Map<String, Object>> items(Connection conn, String orderId) throws Exception {

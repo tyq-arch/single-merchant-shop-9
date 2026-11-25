@@ -100,9 +100,12 @@ public final class Enums {
         /** 客户可取消：尚未到「开始发货」（FR-028）。 */
         public static final Set<String> CUSTOMER_CANCELLABLE = Collections.unmodifiableSet(
                 new HashSet<>(Arrays.asList(PENDING_PAYMENT, PAID, SELLER_CONFIRMED, STOCK_READY)));
-        /** 取消需退款：已支付及之后、开始发货之前（FR-044）。 */
+        /** 卖家可取消：交易完成与已取消之外均可由商家发起取消。 */
+        public static final Set<String> SELLER_CANCELLABLE = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(PENDING_PAYMENT, PAID, SELLER_CONFIRMED, STOCK_READY, SHIPPING)));
+        /** 取消需退款：已支付及之后、交易完成之前（FR-044）。 */
         public static final Set<String> REFUNDABLE = Collections.unmodifiableSet(
-                new HashSet<>(Arrays.asList(PAID, SELLER_CONFIRMED, STOCK_READY)));
+                new HashSet<>(Arrays.asList(PAID, SELLER_CONFIRMED, STOCK_READY, SHIPPING)));
 
         public static String label(String status) {
             if (PENDING_PAYMENT.equals(status)) {
@@ -176,12 +179,24 @@ public final class Enums {
         }
     }
 
-    /** 物流状态：由商家手动更新（TBD-09）。 */
+    /** 物流状态：由商家手动更新（TBD-09），单向流转。 */
     public static final class ShipmentStatus {
         public static final String SHIPPED = "SHIPPED";
         public static final String IN_TRANSIT = "IN_TRANSIT";
         public static final String DELIVERING = "DELIVERING";
-        public static final String SIGNED = "SIGNED";
+        public static final String DELIVERED = "DELIVERED";
+
+        /** 可流转的下一个状态：已发货→运输中→派送中→已签收。 */
+        public static final java.util.Map<String, String> NEXT = java.util.Collections.unmodifiableMap(
+                new java.util.LinkedHashMap<String, String>() {{
+                    put(SHIPPED, IN_TRANSIT);
+                    put(IN_TRANSIT, DELIVERING);
+                    put(DELIVERING, DELIVERED);
+                }});
+
+        /** 全部物流状态（供商家手动更新入参校验）。 */
+        public static final Set<String> ALL = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(SHIPPED, IN_TRANSIT, DELIVERING, DELIVERED)));
 
         public static String label(String status) {
             if (SHIPPED.equals(status)) {
@@ -193,10 +208,49 @@ public final class Enums {
             if (DELIVERING.equals(status)) {
                 return "派送中";
             }
-            if (SIGNED.equals(status)) {
+            if (DELIVERED.equals(status)) {
                 return "已签收";
             }
             return status;
+        }
+    }
+
+    /** 物流服务商（TBD-10）。 */
+    public static final class Carrier {
+        public static final String SF = "SF";
+        public static final String JD = "JD";
+        public static final String ZTO = "ZTO";
+        public static final String YTO = "YTO";
+        public static final String YD = "YD";
+        public static final String EMS = "EMS";
+        public static final String OTHER = "OTHER";
+
+        public static final Set<String> ALL = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(SF, JD, ZTO, YTO, YD, EMS, OTHER)));
+
+        public static String label(String carrier) {
+            if (SF.equals(carrier)) {
+                return "顺丰速运";
+            }
+            if (JD.equals(carrier)) {
+                return "京东物流";
+            }
+            if (ZTO.equals(carrier)) {
+                return "中通快递";
+            }
+            if (YTO.equals(carrier)) {
+                return "圆通速递";
+            }
+            if (YD.equals(carrier)) {
+                return "韵达快递";
+            }
+            if (EMS.equals(carrier)) {
+                return "EMS邮政";
+            }
+            if (OTHER.equals(carrier)) {
+                return "其他";
+            }
+            return carrier;
         }
     }
 
@@ -221,6 +275,33 @@ public final class Enums {
                 return "已拒绝";
             }
             return status;
+        }
+    }
+
+    /** 售后处理结果（TBD-14）。 */
+    public static final class AfterSaleResult {
+        public static final String RETURN = "RETURN";
+        public static final String REFUND = "REFUND";
+        public static final String EXCHANGE = "EXCHANGE";
+        public static final String OTHER = "OTHER";
+
+        public static final Set<String> ALL = Collections.unmodifiableSet(
+                new HashSet<>(Arrays.asList(RETURN, REFUND, EXCHANGE, OTHER)));
+
+        public static String label(String result) {
+            if (RETURN.equals(result)) {
+                return "退货退款";
+            }
+            if (REFUND.equals(result)) {
+                return "仅退款";
+            }
+            if (EXCHANGE.equals(result)) {
+                return "换货";
+            }
+            if (OTHER.equals(result)) {
+                return "其他";
+            }
+            return result;
         }
     }
 

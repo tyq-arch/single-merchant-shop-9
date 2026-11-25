@@ -1,18 +1,20 @@
 package com.shop.services;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+
 import com.shop.config.AppConfig;
 import com.shop.db.Db;
 import com.shop.db.Jdbc;
 import com.shop.security.SecurityService;
 import com.shop.util.Utils;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 /**
  * 启动初始化：建表（幂等）+ 写入唯一固定卖家账号。
@@ -62,6 +64,9 @@ public class InitService {
         ensureColumn(conn, "shop_order", "cancelled_at", "TEXT");
         ensureColumn(conn, "shop_order", "cancel_by", "TEXT");
         ensureColumn(conn, "shop_order", "cancel_reason", "TEXT");
+        ensureColumn(conn, "after_sale", "refund_id", "TEXT");
+        ensureColumn(conn, "after_sale", "refund_amount_cents", "INTEGER");
+        ensureColumn(conn, "after_sale", "handled_at", "TEXT");
         Jdbc.update(conn, "UPDATE shop_order SET status = 'PENDING_PAYMENT' WHERE status = 'CUSTOMER_PLACED'");
     }
 

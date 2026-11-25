@@ -187,7 +187,7 @@ class BackendIntegrationTest {
                 map("name", "杯子", "parent_id", topId), seller).path("category").path("id").asText();
 
         // 2. 商品：A 库存 2、B 库存 5、C 库存 0（售罄下架）
-        String imageUrl = uploadPng();
+        String imageUrl = uploadPng(seller);
         String cupA = publish(seller, "手工陶瓷杯", 99.9, 2, leafId,
                 new ArrayList<>(Arrays.asList(imageUrl))).path("product").path("id").asText();
         String cupB = publish(seller, "玻璃杯", 29.9, 5, leafId, new ArrayList<String>())
@@ -603,7 +603,7 @@ class BackendIntegrationTest {
         throw new IllegalStateException("未找到订单：" + orderId);
     }
 
-    private String uploadPng() {
+    private String uploadPng(String token) {
         byte[] png = new byte[]{(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("file", new ByteArrayResource(png) {
@@ -614,6 +614,9 @@ class BackendIntegrationTest {
         });
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        if (token != null) {
+            headers.setBearerAuth(token);
+        }
         ResponseEntity<String> response = rest.postForEntity(url("/api/files/images"),
                 new HttpEntity<>(parts, headers), String.class);
         try {

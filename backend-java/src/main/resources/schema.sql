@@ -268,18 +268,21 @@ CREATE TABLE IF NOT EXISTS shipment_track (
 CREATE INDEX IF NOT EXISTS ix_track_shipment ON shipment_track(shipment_id, occurred_at);
 
 CREATE TABLE IF NOT EXISTS after_sale (
-    id            TEXT PRIMARY KEY,
-    after_sale_no TEXT NOT NULL UNIQUE,
-    order_id      TEXT NOT NULL REFERENCES shop_order(id),
-    order_item_id TEXT NOT NULL REFERENCES order_item(id),
-    customer_id   TEXT NOT NULL REFERENCES customer(id),
-    title         TEXT NOT NULL,
-    description   TEXT NOT NULL,
-    status        TEXT NOT NULL,
-    result        TEXT,
-    result_note   TEXT,
-    created_at    TEXT NOT NULL,
-    updated_at    TEXT NOT NULL
+    id                 TEXT PRIMARY KEY,
+    after_sale_no      TEXT NOT NULL UNIQUE,
+    order_id           TEXT NOT NULL REFERENCES shop_order(id),
+    order_item_id      TEXT NOT NULL REFERENCES order_item(id),
+    customer_id        TEXT NOT NULL REFERENCES customer(id),
+    title              TEXT NOT NULL,
+    description        TEXT NOT NULL,
+    status             TEXT NOT NULL,
+    result             TEXT,
+    result_note        TEXT,
+    refund_id          TEXT REFERENCES refund(id),
+    refund_amount_cents INTEGER,
+    handled_at         TEXT,
+    created_at         TEXT NOT NULL,
+    updated_at         TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_after_sale_customer ON after_sale(customer_id, created_at DESC);

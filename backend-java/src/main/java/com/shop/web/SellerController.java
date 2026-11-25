@@ -21,13 +21,19 @@ import org.springframework.web.bind.annotation.RestController;
 import com.shop.config.AppConfig;
 import com.shop.db.Db;
 import com.shop.db.Jdbc;
+import com.shop.dto.AfterSaleRejectRequest;
+import com.shop.dto.AfterSaleResolveRequest;
 import com.shop.dto.CategoryRequest;
 import com.shop.dto.ChangePasswordRequest;
 import com.shop.dto.ProductCreateRequest;
 import com.shop.dto.SellerLoginRequest;
+import com.shop.dto.ShipRequest;
+import com.shop.dto.ShipmentUpdateRequest;
 import com.shop.dto.StockUpdateRequest;
 import com.shop.dto.TransactionMarkRequest;
+import com.shop.enums.Enums;
 import com.shop.serializers.Serializers;
+import com.shop.services.AfterSaleService;
 import com.shop.services.AuthService;
 import com.shop.services.CategoryService;
 import com.shop.services.CustomerService;
@@ -52,10 +58,12 @@ public class SellerController {
     private final OrderService orders;
     private final CustomerService customers;
     private final LogService logs;
+    private final AfterSaleService afterSales;
 
     public SellerController(Db db, AppConfig config, AuthService auth, CategoryService categories,
                             ProductService products, IntentService intents, TransactionService transactions,
-                            OrderService orders, CustomerService customers, LogService logs) {
+                            OrderService orders, CustomerService customers, LogService logs,
+                            AfterSaleService afterSales) {
         this.db = db;
         this.config = config;
         this.auth = auth;
@@ -66,6 +74,7 @@ public class SellerController {
         this.orders = orders;
         this.customers = customers;
         this.logs = logs;
+        this.afterSales = afterSales;
     }
 
     // --------------------------- 账号 ---------------------------
@@ -315,7 +324,7 @@ public class SellerController {
         return result;
     }
 
-    /** 单向推进：客户下单→商家确认→备货完成→开始发货→交易完成；交易完成时实际扣减库存。 */
+    /** 单向推进：已支付→商家确认→备货完成→（发货填物流）→交易完成；交易完成时实际扣减库存。 */
     @PostMapping("/orders/{orderId}/advance")
     public Map<String, Object> advanceOrder(@PathVariable String orderId,
                                             @RequestHeader(value = "Authorization", required = false) String authorization) {
@@ -329,6 +338,78 @@ public class SellerController {
                                            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> seller = auth.requireSeller(authorization);
         return db.transaction(conn -> orders.cancelBySeller(conn, Jdbc.strOf(seller, "id"), orderId));
+    }
+
+    /** 开始发货（FR-049）：填写物流服务商与运单号，订单由「备货完成」进入「开始发货」。 */
+    @PostMapping("/orders/{orderId}/ship")
+    public Map<String, Object> shipOrder(@PathVariable String orderId, @RequestBody ShipRequest body,
+                                         @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> seller = auth.requireSeller(authorization);
+        String carrier = Validation.text(body.carrier, "body", "carrier", 1, 20, "物流服务商").toUpperCase();
+        if (!Enums.Carrier.ALL.contains(carrier)) {
+            throw Validation.error("body", "carrier", "物流服务商需为 SF / JD / ZTO / YTO / YD / EMS / OTHER");
+        }
+        String trackingNo = Validation.text(body.trackingNo, "body", "tracking_no", 1, 64, "运单号");
+        return db.transaction(conn ->
+                orders.ship(conn, Jdbc.strOf(seller, "id"), orderId, carrier, trackingNo));
+    }
+
+    /** 商家手动更新物流状态（TBD-09）：单向流转到下一节点。 */
+    @PatchMapping("/orders/{orderId}/shipment")
+    public Map<String, Object> updateShipment(@PathVariable String orderId, @RequestBody ShipmentUpdateRequest body,
+                                              @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Map<String, Object> seller = auth.requireSeller(authorization);
+        String status = Validation.text(body.status, "body", "status", 1, 32, "物流状态").toUpperCase();
+        if (!Enums.ShipmentStatus.ALL.contains(status)) {
+            throw Validation.error("body", "status", "物流状态需为 SHIPPED / IN_TRANSIT / DELIVERING / DELIVERED");
+        }
+        return db.transaction(conn ->
+                orders.updateShipmentStatus(conn, Jdbc.strOf(seller, "id"), orderId, status));
+    }
+
+    // --------------------------- 售后服务（挑战C：FR-053） ---------------------------
+
+    @GetMapping("/aftersales")
+    public Map<String, Object> listAfterSales(@RequestParam(value = "page", required = false) String page,
+                                              @RequestParam(value = "page_size", required = false) String pageSize,
+                                              @RequestParam(value = "status", required = false) String status,
+                                              @RequestParam(value = "keyword", required = false) String keyword,
+                                              @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        int current = Validation.page(page);
+        int size = Validation.pageSize(pageSize, config.getDefaultPageSize(), config.getMaxPageSize());
+        return db.read(conn -> afterSales.listForSeller(conn, status, keyword, current, size));
+    }
+
+    @GetMapping("/aftersales/{afterSaleId}")
+    public Map<String, Object> afterSaleDetail(@PathVariable String afterSaleId,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        return db.read(conn -> afterSales.sellerDetail(conn, afterSaleId));
+    }
+
+    /** 受理售后：待处理 → 协商中。 */
+    @PostMapping("/aftersales/{afterSaleId}/accept")
+    public Map<String, Object> acceptAfterSale(@PathVariable String afterSaleId,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        return db.transaction(conn -> afterSales.accept(conn, afterSaleId));
+    }
+
+    /** 拒绝售后：待处理 → 已拒绝，需填写拒绝原因。 */
+    @PostMapping("/aftersales/{afterSaleId}/reject")
+    public Map<String, Object> rejectAfterSale(@PathVariable String afterSaleId, @RequestBody AfterSaleRejectRequest body,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        return db.transaction(conn -> afterSales.reject(conn, afterSaleId, body == null ? null : body.reason));
+    }
+
+    /** 记录售后结果：协商中 → 已解决；退款结果原路退款。 */
+    @PostMapping("/aftersales/{afterSaleId}/resolve")
+    public Map<String, Object> resolveAfterSale(@PathVariable String afterSaleId, @RequestBody AfterSaleResolveRequest body,
+                                                @RequestHeader(value = "Authorization", required = false) String authorization) {
+        auth.requireSeller(authorization);
+        return db.transaction(conn -> afterSales.resolve(conn, afterSaleId, body));
     }
 
     // --------------------------- 历史与台账 ---------------------------
