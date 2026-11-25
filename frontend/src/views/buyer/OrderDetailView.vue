@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -15,6 +15,7 @@ import {
   canApplyAfterSale,
   canCustomerCancel,
   canPayOrder,
+  cancelReasonText,
   formatCountdown,
   normalizeOrder,
   orderItemCount,
@@ -73,6 +74,19 @@ const remainingMs = computed(() => {
 const payExpired = computed(() => Boolean(deadline.value) && remainingMs.value <= 0)
 const remainingText = computed(() => formatCountdown(remainingMs.value))
 
+/** 超时后只主动刷新一次，避免接口仍返回待支付时反复请求 */
+const expireRefreshed = ref(false)
+watch(payExpired, (expired) => {
+  if (!expired || expireRefreshed.value) return
+  if (order.value?.status !== 'PAYMENT_PENDING') return
+  expireRefreshed.value = true
+  load()
+})
+// 切换订单时重置，保证新订单超时也能主动刷新
+watch(() => route.params.id, () => {
+  expireRefreshed.value = false
+})
+
 const hasPaymentInfo = computed(() => {
   const payment = order.value?.payment
   if (!payment) return false
@@ -80,7 +94,10 @@ const hasPaymentInfo = computed(() => {
     payment.methodLabel !== '—' ||
       payment.paidAt ||
       payment.transactionNo ||
-      payment.refundStatus,
+      payment.refundStatus ||
+      payment.refundTransactionNo ||
+      payment.refundedAt ||
+      payment.status === 'FAILED',
   )
 })
 
@@ -196,6 +213,9 @@ onUnmounted(() => {
             </template>
             <template v-else>请在 24 小时内完成支付</template>
           </p>
+          <p v-if="order.payment?.status === 'FAILED'" class="order-pay__failed">
+            上次支付未成功，订单仍为待支付，可重新发起支付
+          </p>
         </div>
         <el-button type="primary" :disabled="payExpired" @click="payVisible = true">
           去支付
@@ -232,6 +252,14 @@ onUnmounted(() => {
           <span>退款金额</span>
           <span class="price">{{ formatPrice(order.payment.refundAmount) }}</span>
         </div>
+        <div v-if="order.payment.refundTransactionNo" class="order-info__row">
+          <span>退款流水号</span>
+          <span class="order-info__mono">{{ order.payment.refundTransactionNo }}</span>
+        </div>
+        <div v-if="order.payment.refundedAt" class="order-info__row">
+          <span>退款时间</span>
+          <span>{{ order.payment.refundedAt }}</span>
+        </div>
       </section>
 
       <!-- 收货地址快照 -->
@@ -250,7 +278,7 @@ onUnmounted(() => {
         type="info"
         :closable="false"
         show-icon
-        title="订单已取消，占用库存已回补；已支付订单的款项将原路退回"
+        :title="`${cancelReasonText(order)}，占用库存已回补；已支付订单的款项将原路退回`"
       />
 
       <section v-else class="order-steps">
@@ -477,6 +505,12 @@ onUnmounted(() => {
 
 .order-pay__time strong {
   font-variant-numeric: tabular-nums;
+}
+
+.order-pay__failed {
+  margin: var(--sp-1) 0 0;
+  font-size: 12px;
+  color: var(--c-danger);
 }
 
 .order-info {

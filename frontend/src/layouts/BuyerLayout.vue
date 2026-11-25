@@ -43,6 +43,7 @@ function goBack() {
             购物车<template v-if="shopStore.cartCount">（{{ shopStore.cartCount }}）</template>
           </router-link>
           <router-link to="/my/orders" class="buyer-header__link">订单</router-link>
+          <router-link to="/my/aftersales" class="buyer-header__link">售后</router-link>
           <router-link to="/my/profile" class="buyer-header__link buyer-header__link--strong">
             {{ customerStore.username || '我的' }}
           </router-link>

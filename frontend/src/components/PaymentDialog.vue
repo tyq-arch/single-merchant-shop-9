@@ -23,6 +23,8 @@ const emit = defineEmits(['update:modelValue', 'success'])
 
 const method = ref('ALIPAY')
 const submitting = ref(false)
+/** 支付失败反馈：保留在弹窗内，便于用户直接重试（FR-042） */
+const failureMessage = ref('')
 
 const visible = computed({
   get: () => props.modelValue,
@@ -37,6 +39,7 @@ watch(
     if (open) {
       method.value = 'ALIPAY'
       submitting.value = false
+      failureMessage.value = ''
     }
   },
 )
@@ -55,7 +58,8 @@ async function onSubmit() {
     visible.value = false
     emit('success', data)
   } catch (error) {
-    ElMessage.error(error.message || '支付失败，请重试')
+    failureMessage.value = error.message || '支付失败，订单仍为待支付，可直接重试'
+    ElMessage.error(failureMessage.value)
   } finally {
     submitting.value = false
   }
@@ -88,6 +92,15 @@ async function onSubmit() {
           {{ item.label }}
         </el-radio>
       </el-radio-group>
+
+      <el-alert
+        v-if="failureMessage"
+        class="pay__failure"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="failureMessage"
+      />
 
       <el-alert
         class="pay__note"
@@ -145,6 +158,10 @@ async function onSubmit() {
 }
 
 .pay__note {
+  margin-top: var(--sp-4);
+}
+
+.pay__failure {
   margin-top: var(--sp-4);
 }
 </style>

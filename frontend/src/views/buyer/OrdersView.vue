@@ -93,6 +93,11 @@ onMounted(load)
 
           <p class="order-card__items">{{ orderItemsSummary(order) }}</p>
 
+          <p v-if="order.address" class="order-card__address">
+            📍 {{ order.address.receiver }} {{ order.address.phone }}
+            {{ order.address.fullAddress }}
+          </p>
+
           <p v-if="order.status === 'PAYMENT_PENDING'" class="order-card__tip">
             待支付：请在 24 小时内完成支付，超时订单将自动取消
           </p>
@@ -194,6 +199,13 @@ onMounted(load)
   margin: var(--sp-2) 0;
   font-size: var(--fs-base);
   font-weight: 600;
+  word-break: break-all;
+}
+
+.order-card__address {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--c-text-sub);
   word-break: break-all;
 }
 

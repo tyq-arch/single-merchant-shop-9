@@ -138,6 +138,14 @@ onMounted(load)
             <span>退款金额</span>
             <span class="price">{{ formatPrice(aftersale.refundAmount) }}</span>
           </div>
+          <div v-if="aftersale.refundTransactionNo" class="aftersale-result__row">
+            <span>退款流水号</span>
+            <span class="aftersale-result__note">{{ aftersale.refundTransactionNo }}</span>
+          </div>
+          <div v-if="aftersale.refundedAt" class="aftersale-result__row">
+            <span>退款时间</span>
+            <span>{{ aftersale.refundedAt }}</span>
+          </div>
           <div v-if="aftersale.resultNote" class="aftersale-result__row">
             <span>说明</span>
             <span class="aftersale-result__note">{{ aftersale.resultNote }}</span>

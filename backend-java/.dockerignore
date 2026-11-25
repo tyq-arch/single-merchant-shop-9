@@ -1,0 +1,7 @@
+target/
+data/
+uploads/
+*.db
+*.db-shm
+*.db-wal
+logs/

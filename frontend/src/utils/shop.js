@@ -377,8 +377,40 @@ export function normalizePayment(record) {
       '',
     refundAmount,
     refundedAt: record.refunded_at || record.refund_time || '',
+    // FR-045：退款流水/退款时间需可追溯（前端展示用，字段名兼容后端多种命名）
+    refundTransactionNo:
+      record.refund_transaction_no ||
+      record.refund_trade_no ||
+      record.refund_no ||
+      record.refund_transaction_id ||
+      '',
     expireAt: record.expire_at || record.expired_at || '',
   }
+}
+
+/**
+ * 订单取消原因文案（FR-028 / 3.6 节「取消原因标记」）。
+ *
+ * 后端挑战 C 尚未定稿字段，这里兼容常见命名；无法判定时回退为通用文案。
+ */
+export function cancelReasonText(order) {
+  if (!order) return '订单已取消'
+  const raw =
+    order.cancel_reason || order.cancelReason || order.cancellation_reason || ''
+  const by = order.cancelled_by || order.cancelledBy || order.cancel_by || ''
+  const code = String(raw || by).toUpperCase()
+  if (code.includes('TIMEOUT') || code.includes('OVERDUE') || code.includes('EXPIRE')) {
+    return '支付超时，系统自动取消'
+  }
+  if (code.includes('SELLER') || code.includes('MERCHANT')) {
+    return '商家取消'
+  }
+  if (code.includes('CUSTOMER') || code.includes('BUYER')) {
+    return '客户取消'
+  }
+  if (raw) return String(raw)
+  if (by) return String(by)
+  return '订单已取消'
 }
 
 export function normalizeShipment(record) {
@@ -452,6 +484,13 @@ export function normalizeAfterSale(record) {
       record.result_label || AFTER_SALE_RESULT_LABELS[result] || result || '',
     resultNote: record.result_note || record.note || record.remark || '',
     refundAmount: Number(record.refund_amount ?? 0),
+    // FR-045 / TBD-14：售后退款共用原路退回通道，流水与时间需展示
+    refundTransactionNo:
+      record.refund_transaction_no ||
+      record.refund_trade_no ||
+      record.refund_no ||
+      '',
+    refundedAt: record.refunded_at || record.refund_time || '',
     createdAt: record.created_at || '',
     handledAt: record.handled_at || '',
   }
@@ -476,6 +515,8 @@ function flatPaymentOf(order) {
       refund_status: order.refund_status,
       refund_amount: order.refund_amount,
       refunded_at: order.refunded_at,
+      refund_transaction_no:
+        order.refund_transaction_no || order.refund_trade_no || order.refund_no || '',
     }
   }
   return null
